@@ -4,7 +4,7 @@ long_description = 'Apple Silicon "top" for Mac OS'
 
 setup(
     name='asitop',
-    version='0.0.1',
+    version='0.0.2',
     author='Timothy Liu',
     author_email='tlkh.xms@gmail.com',
     url='https://github.com/tlkh/asitop',
