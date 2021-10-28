@@ -1,5 +1,7 @@
 # asitop
 
+Performance monitoring CLI tool for Apple Silicon
+
 ![](images/asitop.png)
 
 ```shell
@@ -8,9 +10,24 @@ pip install asitop
 
 ## What
 
-A `nvtop`/`htop` style/inspired command line tool for Apple Silicon (aka M1) Macs.
+A Python-based `nvtop`-style command line tool for Apple Silicon (aka M1) Macs.
 
-Note that it requires `sudo` to run due to `powermetrics` needing root access to run.
+* Utilization info:
+  * CPU (E-cluster and P-cluster), GPU
+  * Frequency and utilization (active residency)
+* Memory info:
+  * RAM and swap, size and usage
+  * Memory bandwidth (CPU/GPU)
+* Power info:
+  * Package power, CPU power, GPU power
+  * Chart for CPU/GPU power
+  * Remember peak power
+
+Note that it requires `sudo` to run due to macOS `powermetrics` needing root access to run.
+
+## How
+
+After you install via pip, you can use it via the Terminal.
 
 ```shell
 # it will prompt you for password on start
@@ -22,7 +39,7 @@ sudo asitop
 
 ## Why
 
-Because I didn't find something like this online.
+Because I didn't find something like this online. Also, just curious about stuff.
 
 ## Disclaimers
 
