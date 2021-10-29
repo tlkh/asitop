@@ -97,12 +97,11 @@ def parse_thermal_pressure(thermal_pressure):
 def parse_bandwidth_metrics(bandwidth_metrics):
     bandwidth_metrics_lines = bandwidth_metrics.split("\n")
     bandwidth_metrics_dict = {}
-    data_fields = ["PCPU0 RD", "PCPU0 WR",
-                   "PCPU1 RD", "PCPU1 WR",
-                   "PCPU RD", "PCPU WR",
-                   "ECPU RD", "ECPU WR",
-                   "GFX RD", "GFX WR",
-                   "GFX1 RD", "GFX1 WR"]
+    data_fields = ["PCPU0 DCS RD", "PCPU0 DCS WR",
+                   "PCPU1 DCS RD", "PCPU1 DCS WR",
+                   "PCPU DCS RD", "PCPU DCS WR",
+                   "ECPU DCS RD", "ECPU DCS WR",
+                   "GFX DCS RD", "GFX DCS WR"]
     for h in data_fields:
         for l in bandwidth_metrics_lines:
             if h in l:
@@ -110,16 +109,12 @@ def parse_bandwidth_metrics(bandwidth_metrics):
                 value = float(value.split("MB/s")[0].strip())
                 bandwidth_metrics_dict[h] = value
                 break
-    if "PCPU RD" not in bandwidth_metrics_dict:
-        bandwidth_metrics_dict["PCPU RD"] = bandwidth_metrics_dict["PCPU0 RD"] + \
-            bandwidth_metrics_dict["PCPU1 RD"]
-    if "PCPU WR" not in bandwidth_metrics_dict:
-        bandwidth_metrics_dict["PCPU WR"] = bandwidth_metrics_dict["PCPU0 WR"] + \
-            bandwidth_metrics_dict["PCPU1 WR"]
-    if "GFX1 RD" in bandwidth_metrics_dict:
-        bandwidth_metrics_dict["GFX RD"] += bandwidth_metrics_dict["GFX1 RD"]
-    if "GFX1 WR" in bandwidth_metrics_dict:
-        bandwidth_metrics_dict["GFX WR"] += bandwidth_metrics_dict["GFX1 WR"]
+    if "PCPU DCS RD" not in bandwidth_metrics_dict:
+        bandwidth_metrics_dict["PCPU DCS RD"] = bandwidth_metrics_dict["PCPU0 DCS RD"] + \
+            bandwidth_metrics_dict["PCPU1 DCS RD"]
+    if "PCPU DCS WR" not in bandwidth_metrics_dict:
+        bandwidth_metrics_dict["PCPU DCS WR"] = bandwidth_metrics_dict["PCPU0 DCS WR"] + \
+            bandwidth_metrics_dict["PCPU1 DCS WR"]
     return bandwidth_metrics_dict
 
 
@@ -151,6 +146,10 @@ def get_ram_metrics_dict():
     swap_total_GB = convert_to_GB(swap_metrics.total)
     swap_used_GB = convert_to_GB(swap_metrics.used)
     swap_free_GB = convert_to_GB(swap_metrics.total-swap_metrics.used)
+    if swap_total_GB > 0:
+        swap_free_percent = int(100-(swap_free_GB/swap_total_GB*100))
+    else:
+        swap_free_percent = None
     ram_metrics_dict = {
         "total_GB": round(total_GB, 1),
         "free_GB": round(free_GB, 1),
@@ -159,7 +158,7 @@ def get_ram_metrics_dict():
         "swap_total_GB": swap_total_GB,
         "swap_used_GB": swap_used_GB,
         "swap_free_GB": swap_free_GB,
-        "swap_free_percent": int(100-(swap_free_GB/swap_total_GB*100)),
+        "swap_free_percent": swap_free_percent,
     }
     return ram_metrics_dict
 
@@ -278,34 +277,41 @@ def main():
             gpu_gauge.value = int(gpu_metrics_dict["GPU active residency"])
 
             ram_metrics_dict = get_ram_metrics_dict()
-            ram_gauge.title = "RAM Usage: " + \
-                str(ram_metrics_dict["used_GB"])+"GB/" + \
-                str(ram_metrics_dict["total_GB"])+"GB" + \
-                " swap: " + \
-                str(ram_metrics_dict["swap_used_GB"])+"GB/" + \
-                str(ram_metrics_dict["swap_total_GB"])+"GB"
+
+            if ram_metrics_dict["swap_total_GB"] < 0.1:
+                ram_gauge.title = "RAM Usage: " + \
+                    str(ram_metrics_dict["used_GB"])+"GB/" + \
+                    str(ram_metrics_dict["total_GB"])+"GB" + \
+                        " swap: inactive"
+            else:
+                ram_gauge.title = "RAM Usage: " + \
+                    str(ram_metrics_dict["used_GB"])+"GB/" + \
+                    str(ram_metrics_dict["total_GB"])+"GB" + \
+                    " swap: " + \
+                    str(ram_metrics_dict["swap_used_GB"])+"GB/" + \
+                    str(ram_metrics_dict["swap_total_GB"])+"GB"
             ram_gauge.value = int(ram_metrics_dict["free_percent"])
 
             ecpu_bw_percent = int(
-                (bandwidth_metrics["ECPU RD"]+bandwidth_metrics["ECPU WR"])/1000/max_cpu_bw*100)
-            ecpu_read_GB = round(bandwidth_metrics["ECPU RD"]/1000, 1)
-            ecpu_write_GB = round(bandwidth_metrics["ECPU WR"]/1000, 1)
+                (bandwidth_metrics["ECPU DCS RD"]+bandwidth_metrics["ECPU DCS WR"])/1000/max_cpu_bw*100)
+            ecpu_read_GB = round(bandwidth_metrics["ECPU DCS RD"]/1000, 1)
+            ecpu_write_GB = round(bandwidth_metrics["ECPU DCS WR"]/1000, 1)
             ecpu_bw_gauge.title = "E-CPU R:" + \
                 str(ecpu_read_GB)+" W:"+str(ecpu_write_GB)
             ecpu_bw_gauge.value = ecpu_bw_percent
 
             pcpu_bw_percent = int(
-                (bandwidth_metrics["PCPU RD"]+bandwidth_metrics["PCPU WR"])/1000/max_cpu_bw*100)
-            pcpu_read_GB = round(bandwidth_metrics["PCPU RD"]/1000, 1)
-            pcpu_write_GB = round(bandwidth_metrics["PCPU WR"]/1000, 1)
+                (bandwidth_metrics["PCPU DCS RD"]+bandwidth_metrics["PCPU DCS WR"])/1000/max_cpu_bw*100)
+            pcpu_read_GB = round(bandwidth_metrics["PCPU DCS RD"]/1000, 1)
+            pcpu_write_GB = round(bandwidth_metrics["PCPU DCS WR"]/1000, 1)
             pcpu_bw_gauge.title = "P-CPU R:" + \
                 str(pcpu_read_GB)+" W:"+str(pcpu_write_GB)
             pcpu_bw_gauge.value = pcpu_bw_percent
 
             gpu_bw_percent = int(
-                (bandwidth_metrics["GFX RD"]+bandwidth_metrics["GFX WR"])/1000/max_gpu_bw*100)
-            gpu_read_GB = round(bandwidth_metrics["GFX RD"]/1000, 1)
-            gpu_write_GB = round(bandwidth_metrics["GFX WR"]/1000, 1)
+                (bandwidth_metrics["GFX DCS RD"]+bandwidth_metrics["GFX DCS WR"])/1000/max_gpu_bw*100)
+            gpu_read_GB = round(bandwidth_metrics["GFX DCS RD"]/1000, 1)
+            gpu_write_GB = round(bandwidth_metrics["GFX DCS WR"]/1000, 1)
             gpu_bw_gauge.title = "GPU R:" + \
                 str(gpu_read_GB)+" W:"+str(gpu_write_GB)
             gpu_bw_gauge.value = gpu_bw_percent
