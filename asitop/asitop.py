@@ -101,7 +101,8 @@ def parse_bandwidth_metrics(bandwidth_metrics):
                    "PCPU1 RD", "PCPU1 WR",
                    "PCPU RD", "PCPU WR",
                    "ECPU RD", "ECPU WR",
-                   "GFX RD", "GFX WR"]
+                   "GFX RD", "GFX WR",
+                   "GFX1 RD", "GFX1 WR"]
     for h in data_fields:
         for l in bandwidth_metrics_lines:
             if h in l:
@@ -115,6 +116,10 @@ def parse_bandwidth_metrics(bandwidth_metrics):
     if "PCPU WR" not in bandwidth_metrics_dict:
         bandwidth_metrics_dict["PCPU WR"] = bandwidth_metrics_dict["PCPU0 WR"] + \
             bandwidth_metrics_dict["PCPU1 WR"]
+    if "GFX1 RD" in bandwidth_metrics_dict:
+        bandwidth_metrics_dict["GFX RD"] += bandwidth_metrics_dict["GFX1 RD"]
+    if "GFX1 WR" in bandwidth_metrics_dict:
+        bandwidth_metrics_dict["GFX WR"] += bandwidth_metrics_dict["GFX1 WR"]
     return bandwidth_metrics_dict
 
 
@@ -214,17 +219,17 @@ def main():
     cpu_title = cpu_info_dict["machdep.cpu.brand_string"] + \
         " (" + cpu_info_dict["machdep.cpu.core_count"] + "-core)"
     if cpu_info_dict["machdep.cpu.brand_string"] == "Apple M1 Max" or cpu_info_dict["machdep.cpu.brand_string"] == "Apple M1 Pro":
-        cpu_max_power = 35
-        gpu_max_power = 65
+        cpu_max_power = 30
+        gpu_max_power = 60
     elif cpu_info_dict["machdep.cpu.brand_string"] == "Apple M1":
-        cpu_max_power = 25
+        cpu_max_power = 20
         gpu_max_power = 20
     if cpu_info_dict["machdep.cpu.brand_string"] == "Apple M1 Max":
         max_cpu_bw = 200
-        max_gpu_bw = 200
+        max_gpu_bw = 400
     elif cpu_info_dict["machdep.cpu.brand_string"] == "Apple M1 Pro":
         max_cpu_bw = 200
-        max_gpu_bw = 200
+        max_gpu_bw = 400
     elif cpu_info_dict["machdep.cpu.brand_string"] == "Apple M1":
         max_cpu_bw = 70
         max_gpu_bw = 70

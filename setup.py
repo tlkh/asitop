@@ -1,14 +1,14 @@
 from setuptools import setup, find_packages
 
-long_description = 'Apple Silicon "top" for Mac OS'
+long_description = 'Performance monitoring CLI tool for Apple Silicon'
 
 setup(
     name='asitop',
-    version='0.0.2',
+    version='0.0.3',
     author='Timothy Liu',
     author_email='tlkh.xms@gmail.com',
     url='https://github.com/tlkh/asitop',
-    description='Apple Silicon "top" for Mac OS',
+    description='Performance monitoring CLI tool for Apple Silicon',
     long_description=long_description,
     long_description_content_type="text/markdown",
     license='MIT',
