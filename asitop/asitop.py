@@ -282,12 +282,12 @@ def main():
                 ram_gauge.title = "RAM Usage: " + \
                     str(ram_metrics_dict["used_GB"])+"GB/" + \
                     str(ram_metrics_dict["total_GB"])+"GB" + \
-                        " swap: inactive"
+                        " - swap: inactive"
             else:
                 ram_gauge.title = "RAM Usage: " + \
                     str(ram_metrics_dict["used_GB"])+"GB/" + \
                     str(ram_metrics_dict["total_GB"])+"GB" + \
-                    " swap: " + \
+                    " - swap: " + \
                     str(ram_metrics_dict["swap_used_GB"])+"GB/" + \
                     str(ram_metrics_dict["swap_total_GB"])+"GB"
             ram_gauge.value = int(ram_metrics_dict["free_percent"])
