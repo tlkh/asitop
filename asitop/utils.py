@@ -72,7 +72,7 @@ def run_powermetrics_process(timecode, nice=10, interval=1000):
     command = " ".join([
         "sudo nice -n",
         str(nice),
-        "powermetrics --samplers cpu_power,gpu_power,thermal,bandwidth -o /tmp/asitop_powermetrics"+timecode,
+        "powermetrics --samplers cpu_power,gpu_power,thermal,bandwidth -u /tmp/asitop_powermetrics"+timecode,
         "-f plist",
         "-i",
         str(interval)
