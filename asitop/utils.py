@@ -7,9 +7,10 @@ from .parsers import *
 import plistlib
 
 
-def parse_powermetrics(path='/tmp/asitop_powermetrics'):
+def parse_powermetrics(path='/tmp/asitop_powermetrics', timecode="0"):
+    data = None
     try:
-        with open(path, 'rb') as fp:
+        with open(path+timecode, 'rb') as fp:
             data = fp.read()
         data = data.split(b'\x00')
         powermetrics_parse = plistlib.loads(data[-1])
@@ -19,7 +20,7 @@ def parse_powermetrics(path='/tmp/asitop_powermetrics'):
         bandwidth_metrics = parse_bandwidth_metrics(powermetrics_parse)
         timestamp = powermetrics_parse["timestamp"]
         return cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp
-    except:
+    except Exception as e:
         if data:
             if len(data) > 1:
                 powermetrics_parse = plistlib.loads(data[-2])
@@ -43,6 +44,19 @@ def get_cpu_info():
                 value = l.split(":")[1].strip()
                 cpu_info_dict[h] = value
     return cpu_info_dict
+    
+
+def get_core_counts():
+    cores_info = os.popen('sysctl -a | grep hw.perflevel').read()
+    cores_info_lines = cores_info.split("\n")
+    data_fields = ["hw.perflevel0.logicalcpu", "hw.perflevel1.logicalcpu"]
+    cores_info_dict = {}
+    for l in cores_info_lines:
+        for h in data_fields:
+            if h in l:
+                value = int(l.split(":")[1].strip())
+                cores_info_dict[h] = value
+    return cores_info_dict
 
 
 def clear_console():
@@ -54,11 +68,12 @@ def convert_to_GB(value):
     return round(value/1024/1024/1024, 1)
 
 
-def run_powermetrics_process(nice=10, interval=1000):
+def run_powermetrics_process(timecode, nice=10, interval=1000):
     command = " ".join([
         "sudo nice -n",
         str(nice),
-        "powermetrics --samplers cpu_power,gpu_power,thermal,bandwidth -o /tmp/asitop_powermetrics -f plist",
+        "powermetrics --samplers cpu_power,gpu_power,thermal,bandwidth -o /tmp/asitop_powermetrics"+timecode,
+        "-f plist",
         "-i",
         str(interval)
     ])

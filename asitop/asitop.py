@@ -1,18 +1,20 @@
 
 import time
+import glob
 import argparse
 from collections import deque
 from dashing import VSplit, HSplit, HGauge, HChart
 from .utils import *
 
 
-parser = argparse.ArgumentParser(description='asitop: Performance monitoring CLI tool for Apple Silicon')
+parser = argparse.ArgumentParser(
+    description='asitop: Performance monitoring CLI tool for Apple Silicon')
 parser.add_argument('--interval', type=int, default=1,
-                    help='Display interval, and sampling interval for powermetrics')
+                    help='Display interval and sampling interval for powermetrics (seconds)')
 parser.add_argument('--color', type=int, default=2,
                     help='Choose display color (0~8)')
 parser.add_argument('--avg', type=int, default=30,
-                    help='Interval for averaged values')
+                    help='Interval for averaged values (seconds)')
 args = parser.parse_args()
 
 
@@ -91,16 +93,18 @@ def main():
 
     print("\n[2/3] Starting powermetrics process\n")
 
-    powermetrics_process = run_powermetrics_process(
-        interval=args.interval*1000)
+    timecode = str(int(time.time()))
+
+    powermetrics_process = run_powermetrics_process(timecode,
+                                                    interval=args.interval*1000)
 
     print("\n[3/3] Waiting for first reading...\n")
 
     def get_reading(wait=0.1):
-        ready = parse_powermetrics()
+        ready = parse_powermetrics(timecode=timecode)
         while not ready:
             time.sleep(wait)
-            ready = parse_powermetrics()
+            ready = parse_powermetrics(timecode=timecode)
         return ready
 
     ready = get_reading()
@@ -118,9 +122,9 @@ def main():
 
     clear_console()
 
-    while True:
-        try:
-            ready = parse_powermetrics()
+    try:
+        while True:
+            ready = parse_powermetrics(timecode=timecode)
             if ready:
                 cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp = ready
 
@@ -223,7 +227,8 @@ def main():
                     ])
                     gpu_bw_gauge.value = gpu_bw_percent
 
-                    total_bw_GB = ecpu_read_GB+ecpu_write_GB+pcpu_read_GB+pcpu_write_GB+gpu_read_GB+gpu_write_GB
+                    total_bw_GB = ecpu_read_GB+ecpu_write_GB + \
+                        pcpu_read_GB+pcpu_write_GB+gpu_read_GB+gpu_write_GB
                     bw_gauges.title = "".join([
                         "Memory Bandwidth (GB/s) - total: ",
                         '{0:.2f}'.format(total_bw_GB),
@@ -284,13 +289,15 @@ def main():
 
             time.sleep(args.interval)
 
-        except KeyboardInterrupt:
-            break
+    except KeyboardInterrupt:
+        pass
 
     return powermetrics_process
 
 
 if __name__ == "__main__":
     powermetrics_process = main()
+    for tmpf in glob.glob("/tmp/asitop_powermetrics*"):
+        os.remove(tmpf)
     powermetrics_process.terminate()
     print("Successfully terminated powermetrics process")
