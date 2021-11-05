@@ -71,7 +71,7 @@ def convert_to_GB(value):
 
 def run_powermetrics_process(timecode, nice=10, interval=1000):
     ver, *_ = platform.mac_ver()
-    major_ver = ver.split(".")[0]
+    major_ver = int(ver.split(".")[0])
     output_file_flag = "-u"
 
     if major_ver >= 12:
