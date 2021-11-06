@@ -240,9 +240,11 @@ def main():
                     power_charts.title = "".join([
                         "Package Power: ",
                         '{0:.2f}'.format(package_power_W),
-                        "W - avg: ",
+                        "W (avg: ",
                         '{0:.2f}'.format(avg_package_power),
-                        "W - throttle: ",
+                        "W peak: ",
+                        '{0:.2f}'.format(package_peak_power),
+                        "W) throttle: ",
                         thermal_throttle,
                     ])
 
@@ -256,9 +258,9 @@ def main():
                     cpu_power_chart.title = "".join([
                         "CPU: ",
                         '{0:.2f}'.format(cpu_power_W),
-                        "W (avg:",
+                        "W (avg: ",
                         '{0:.2f}'.format(avg_cpu_power),
-                        "W peak:",
+                        "W peak: ",
                         '{0:.2f}'.format(cpu_peak_power),
                         "W)"
                     ])
@@ -274,9 +276,9 @@ def main():
                     gpu_power_chart.title = "".join([
                         "GPU: ",
                         '{0:.2f}'.format(gpu_power_W),
-                        "W (avg:",
+                        "W (avg: ",
                         '{0:.2f}'.format(avg_gpu_power),
-                        "W peak:",
+                        "W peak: ",
                         '{0:.2f}'.format(gpu_peak_power),
                         "W)"
                     ])
