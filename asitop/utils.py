@@ -1,3 +1,4 @@
+import platform
 import os
 import time
 import subprocess
@@ -69,10 +70,20 @@ def convert_to_GB(value):
 
 
 def run_powermetrics_process(timecode, nice=10, interval=1000):
+    ver, *_ = platform.mac_ver()
+    major_ver = int(ver.split(".")[0])
+    output_file_flag = "-u"
+
+    if major_ver >= 12:
+        output_file_flag = "-o"
+
     command = " ".join([
         "sudo nice -n",
         str(nice),
-        "powermetrics --samplers cpu_power,gpu_power,thermal,bandwidth -o /tmp/asitop_powermetrics"+timecode,
+        "powermetrics",
+        "--samplers cpu_power,gpu_power,thermal,bandwidth", 
+        output_file_flag,
+        "/tmp/asitop_powermetrics"+timecode,
         "-f plist",
         "-i",
         str(interval)
