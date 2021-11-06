@@ -28,7 +28,7 @@ def main():
                 HGauge(title="P-CPU Usage", val=0, color=args.color),
             ),
             HGauge(title="GPU Usage", val=0, color=args.color),
-            title="Usage Gauge",
+            title="Processor Utilization",
             border_color=args.color,
         ),
         VSplit(
@@ -68,24 +68,21 @@ def main():
     cpu_power_chart = power_charts.items[0]
     gpu_power_chart = power_charts.items[1]
 
-    cpu_info_dict = get_cpu_info()
-    cpu_title = cpu_info_dict["machdep.cpu.brand_string"] + \
-        " (" + cpu_info_dict["machdep.cpu.core_count"] + "-core)"
-    if cpu_info_dict["machdep.cpu.brand_string"] == "Apple M1 Max" or cpu_info_dict["machdep.cpu.brand_string"] == "Apple M1 Pro":
-        cpu_max_power = 30
-        gpu_max_power = 60
-    elif cpu_info_dict["machdep.cpu.brand_string"] == "Apple M1":
-        cpu_max_power = 20
-        gpu_max_power = 20
-    if cpu_info_dict["machdep.cpu.brand_string"] == "Apple M1 Max":
-        max_cpu_bw = 200
-        max_gpu_bw = 400
-    elif cpu_info_dict["machdep.cpu.brand_string"] == "Apple M1 Pro":
-        max_cpu_bw = 200
-        max_gpu_bw = 400
-    elif cpu_info_dict["machdep.cpu.brand_string"] == "Apple M1":
-        max_cpu_bw = 70
-        max_gpu_bw = 70
+    soc_info_dict = get_soc_info()
+
+    cpu_title = "".join([
+        soc_info_dict["name"],
+        " (cores: ",
+        str(soc_info_dict["e_core_count"]),
+        "E + ",
+        str(soc_info_dict["p_core_count"]),
+        "P)",
+    ])
+    usage_gauges.title = cpu_title
+    cpu_max_power = soc_info_dict["cpu_max_power"]
+    gpu_max_power = soc_info_dict["gpu_max_power"]
+    max_cpu_bw = soc_info_dict["cpu_max_bw"]
+    max_gpu_bw = soc_info_dict["gpu_max_bw"]
 
     cpu_peak_power = 0
     gpu_peak_power = 0
@@ -109,8 +106,6 @@ def main():
 
     ready = get_reading()
     last_timestamp = ready[-1]
-
-    usage_gauges.title = cpu_title
 
     def get_avg(inlist):
         avg = sum(inlist)/len(inlist)
@@ -257,13 +252,13 @@ def main():
                     avg_cpu_power_list.append(cpu_power_W)
                     avg_cpu_power = get_avg(avg_cpu_power_list)
                     cpu_power_chart.title = "".join([
-                        "CPU Power: ",
+                        "CPU: ",
                         '{0:.2f}'.format(cpu_power_W),
-                        "W - avg: ",
+                        "W (avg:",
                         '{0:.2f}'.format(avg_cpu_power),
-                        "W - peak: ",
+                        "W peak:",
                         '{0:.2f}'.format(cpu_peak_power),
-                        "W"
+                        "W)"
                     ])
                     cpu_power_chart.append(cpu_power_percent)
 
@@ -275,13 +270,13 @@ def main():
                     avg_gpu_power_list.append(gpu_power_W)
                     avg_gpu_power = get_avg(avg_gpu_power_list)
                     gpu_power_chart.title = "".join([
-                        "GPU Power: ",
+                        "GPU: ",
                         '{0:.2f}'.format(gpu_power_W),
-                        "W - avg: ",
+                        "W (avg:",
                         '{0:.2f}'.format(avg_gpu_power),
-                        "W - peak: ",
+                        "W peak:",
                         '{0:.2f}'.format(gpu_peak_power),
-                        "W"
+                        "W)"
                     ])
                     gpu_power_chart.append(gpu_power_percent)
 

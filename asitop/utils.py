@@ -34,32 +34,6 @@ def parse_powermetrics(path='/tmp/asitop_powermetrics', timecode="0"):
         return False
 
 
-def get_cpu_info():
-    cpu_info = os.popen('sysctl -a | grep machdep.cpu').read()
-    cpu_info_lines = cpu_info.split("\n")
-    data_fields = ["machdep.cpu.brand_string", "machdep.cpu.core_count"]
-    cpu_info_dict = {}
-    for l in cpu_info_lines:
-        for h in data_fields:
-            if h in l:
-                value = l.split(":")[1].strip()
-                cpu_info_dict[h] = value
-    return cpu_info_dict
-    
-
-def get_core_counts():
-    cores_info = os.popen('sysctl -a | grep hw.perflevel').read()
-    cores_info_lines = cores_info.split("\n")
-    data_fields = ["hw.perflevel0.logicalcpu", "hw.perflevel1.logicalcpu"]
-    cores_info_dict = {}
-    for l in cores_info_lines:
-        for h in data_fields:
-            if h in l:
-                value = int(l.split(":")[1].strip())
-                cores_info_dict[h] = value
-    return cores_info_dict
-
-
 def clear_console():
     command = 'clear'
     os.system(command)
@@ -115,3 +89,71 @@ def get_ram_metrics_dict():
         "swap_free_percent": swap_free_percent,
     }
     return ram_metrics_dict
+
+
+def get_cpu_info():
+    cpu_info = os.popen('sysctl -a | grep machdep.cpu').read()
+    cpu_info_lines = cpu_info.split("\n")
+    data_fields = ["machdep.cpu.brand_string", "machdep.cpu.core_count"]
+    cpu_info_dict = {}
+    for l in cpu_info_lines:
+        for h in data_fields:
+            if h in l:
+                value = l.split(":")[1].strip()
+                cpu_info_dict[h] = value
+    return cpu_info_dict
+    
+
+def get_core_counts():
+    cores_info = os.popen('sysctl -a | grep hw.perflevel').read()
+    cores_info_lines = cores_info.split("\n")
+    data_fields = ["hw.perflevel0.logicalcpu", "hw.perflevel1.logicalcpu"]
+    cores_info_dict = {}
+    for l in cores_info_lines:
+        for h in data_fields:
+            if h in l:
+                value = int(l.split(":")[1].strip())
+                cores_info_dict[h] = value
+    return cores_info_dict
+
+
+def get_soc_info():
+    cpu_info_dict = get_cpu_info()
+    core_counts_dict = get_core_counts()
+    soc_info = {
+        "name": cpu_info_dict["machdep.cpu.brand_string"],
+        "core_count": int(cpu_info_dict["machdep.cpu.core_count"]),
+        "cpu_max_power": None,
+        "gpu_max_power": None,
+        "cpu_max_bw": None,
+        "gpu_max_bw": None,
+        "e_core_count": core_counts_dict["hw.perflevel1.logicalcpu"],
+        "p_core_count": core_counts_dict["hw.perflevel0.logicalcpu"],
+    }
+    # TDP (power)
+    if soc_info["name"] == "Apple M1 Max":
+        soc_info["cpu_max_power"] = 30
+        soc_info["gpu_max_power"] = 60
+    elif soc_info["name"] == "Apple M1 Pro":
+        soc_info["cpu_max_power"] = 30
+        soc_info["gpu_max_power"] = 30
+    elif soc_info["name"] == "Apple M1":
+        soc_info["cpu_max_power"] = 20
+        soc_info["gpu_max_power"] = 20
+    else:
+        soc_info["cpu_max_power"] = 20
+        soc_info["gpu_max_power"] = 20
+    # bandwidth
+    if soc_info["name"] == "Apple M1 Max":
+        soc_info["cpu_max_bw"] = 250
+        soc_info["gpu_max_bw"] = 400
+    elif soc_info["name"] == "Apple M1 Pro":
+        soc_info["cpu_max_bw"] = 200
+        soc_info["gpu_max_bw"] = 200
+    elif soc_info["name"] == "Apple M1":
+        soc_info["cpu_max_bw"] = 70
+        soc_info["gpu_max_bw"] = 70
+    else:
+        soc_info["cpu_max_bw"] = 70
+        soc_info["gpu_max_bw"] = 70
+    return soc_info
