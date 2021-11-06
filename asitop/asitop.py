@@ -168,7 +168,7 @@ def main():
                             str(ram_metrics_dict["used_GB"]),
                             "/",
                             str(ram_metrics_dict["total_GB"]),
-                            "GB"
+                            "GB - swap inactive"
                         ])
                     else:
                         ram_gauge.title = "".join([
@@ -224,12 +224,15 @@ def main():
                     ])
                     gpu_bw_gauge.value = gpu_bw_percent
 
-                    total_bw_GB = ecpu_read_GB+ecpu_write_GB + \
-                        pcpu_read_GB+pcpu_write_GB+gpu_read_GB+gpu_write_GB
+                    total_bw_GB = bandwidth_metrics["DCS RD"] + bandwidth_metrics["DCS WR"]
                     bw_gauges.title = "".join([
-                        "Memory Bandwidth (GB/s) - total: ",
+                        "Memory Bandwidth: ",
                         '{0:.2f}'.format(total_bw_GB),
-                        " GB/s"
+                        " GB/s (R:",
+                        '{0:.2f}'.format(bandwidth_metrics["DCS RD"]),
+                        "/W:",
+                        '{0:.2f}'.format(bandwidth_metrics["DCS WR"]),
+                        " GB/s)"
                     ])
 
                     package_power_W = cpu_metrics_dict["package_W"]

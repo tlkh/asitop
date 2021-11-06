@@ -9,7 +9,8 @@ def parse_bandwidth_metrics(powermetrics_parse):
                    "PCPU1 DCS RD", "PCPU1 DCS WR",
                    "PCPU DCS RD", "PCPU DCS WR",
                    "ECPU DCS RD", "ECPU DCS WR",
-                   "GFX DCS RD", "GFX DCS WR"]
+                   "GFX DCS RD", "GFX DCS WR",
+                   "DCS RD", "DCS WR"]
     for l in bandwidth_metrics:
         if l["name"] in data_fields:
             bandwidth_metrics_dict[l["name"]] = l["value"]/(1e9)
