@@ -74,9 +74,11 @@ def main():
         soc_info_dict["name"],
         " (cores: ",
         str(soc_info_dict["e_core_count"]),
-        "E + ",
+        "E+",
         str(soc_info_dict["p_core_count"]),
-        "P)",
+        "P+",
+        str(soc_info_dict["gpu_core_count"]),
+        "GPU)"
     ])
     usage_gauges.title = cpu_title
     cpu_max_power = soc_info_dict["cpu_max_power"]

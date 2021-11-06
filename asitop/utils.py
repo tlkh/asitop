@@ -117,6 +117,12 @@ def get_core_counts():
     return cores_info_dict
 
 
+def get_gpu_cores():
+    cores = os.popen("system_profiler -detailLevel basic SPDisplaysDataType | grep 'Total Number of Cores'").read()
+    cores = int(cores.split(": ")[-1])
+    return cores
+
+
 def get_soc_info():
     cpu_info_dict = get_cpu_info()
     core_counts_dict = get_core_counts()
@@ -129,6 +135,7 @@ def get_soc_info():
         "gpu_max_bw": None,
         "e_core_count": core_counts_dict["hw.perflevel1.logicalcpu"],
         "p_core_count": core_counts_dict["hw.perflevel0.logicalcpu"],
+        "gpu_core_count": get_gpu_cores()
     }
     # TDP (power)
     if soc_info["name"] == "Apple M1 Max":
