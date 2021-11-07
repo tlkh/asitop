@@ -118,14 +118,23 @@ def get_core_counts():
 
 
 def get_gpu_cores():
-    cores = os.popen("system_profiler -detailLevel basic SPDisplaysDataType | grep 'Total Number of Cores'").read()
-    cores = int(cores.split(": ")[-1])
+    try:
+        cores = os.popen("system_profiler -detailLevel basic SPDisplaysDataType | grep 'Total Number of Cores'").read()
+        cores = int(cores.split(": ")[-1])
+    except:
+        cores = "?"
     return cores
 
 
 def get_soc_info():
     cpu_info_dict = get_cpu_info()
     core_counts_dict = get_core_counts()
+    try:
+        e_core_count = core_counts_dict["hw.perflevel1.logicalcpu"]
+        p_core_count = core_counts_dict["hw.perflevel0.logicalcpu"]
+    except:
+        e_core_count = "?"
+        p_core_count = "?"
     soc_info = {
         "name": cpu_info_dict["machdep.cpu.brand_string"],
         "core_count": int(cpu_info_dict["machdep.cpu.core_count"]),
@@ -133,8 +142,8 @@ def get_soc_info():
         "gpu_max_power": None,
         "cpu_max_bw": None,
         "gpu_max_bw": None,
-        "e_core_count": core_counts_dict["hw.perflevel1.logicalcpu"],
-        "p_core_count": core_counts_dict["hw.perflevel0.logicalcpu"],
+        "e_core_count": e_core_count,
+        "p_core_count": p_core_count,
         "gpu_core_count": get_gpu_cores()
     }
     # TDP (power)
