@@ -4,7 +4,7 @@
 
 Performance monitoring CLI tool for Apple Silicon
 
-![](images/asitop.gif)
+![](images/asitop.png)
 
 ```shell
 pip install asitop
@@ -17,9 +17,11 @@ A Python-based `nvtop`-inspired command line tool for Apple Silicon (aka M1) Mac
 * Utilization info:
   * CPU (E-cluster and P-cluster), GPU
   * Frequency and utilization
+  * ANE utilization (measured by power)
 * Memory info:
   * RAM and swap, size and usage
   * Memory bandwidth (CPU/GPU/total)
+  * Media engine bandwidth usage
 * Power info:
   * Package power, CPU power, GPU power
   * Chart for CPU/GPU power
@@ -27,7 +29,7 @@ A Python-based `nvtop`-inspired command line tool for Apple Silicon (aka M1) Mac
 
 `asitop` uses the built-in [`powermetrics`](https://www.unix.com/man-page/osx/1/powermetrics/) utility on macOS, which allows access to a variety of hardware performance counters. Note that it requires `sudo` to run due to `powermetrics` needing root access to run. `asitop` is lightweight and has minimal performance impact.
 
-**`asitop` only works on Apple Silicon Macs.**
+**`asitop` only works on Apple Silicon Macs on macOS Monterey!**
 
 ## Installation and Usage
 
@@ -56,8 +58,8 @@ optional arguments:
 
 * CPU/GPU utilization via active residency
 * CPU/GPU frequency
-* Package/CPU/GPU energy consumption
-* CPU/GPU/Total memory bandwidth via the DCS (DRAM Command Scheduler)
+* Package/CPU/GPU/ANE energy consumption
+* CPU/GPU/Media Total memory bandwidth via the DCS (DRAM Command Scheduler)
 
 [`psutil`](https://github.com/giampaolo/psutil) is used to measure the following:
 
@@ -76,6 +78,8 @@ Some information is guesstimate and hardcoded as there doesn't seem to be a offi
 
 * CPU/GPU TDP
 * CPU/GPU maximum memory bandwidth
+* ANE max power
+* Media engine max bandwidth
 
 ## Why
 

@@ -27,7 +27,10 @@ def main():
                 HGauge(title="E-CPU Usage", val=0, color=args.color),
                 HGauge(title="P-CPU Usage", val=0, color=args.color),
             ),
-            HGauge(title="GPU Usage", val=0, color=args.color),
+            HSplit(
+                HGauge(title="GPU Usage", val=0, color=args.color),
+                HGauge(title="ANE", val=0, color=args.color),
+            ),
             title="Processor Utilization",
             border_color=args.color,
         ),
@@ -37,6 +40,7 @@ def main():
                 HGauge(title="E-CPU B/W", val=50, color=args.color),
                 HGauge(title="P-CPU B/W", val=50, color=args.color),
                 HGauge(title="GPU B/W", val=50, color=args.color),
+                HGauge(title="Media B/W", val=50, color=args.color),
             ),
             border_color=args.color,
             title="Memory"
@@ -56,7 +60,9 @@ def main():
     cpu_gauges = usage_gauges.items[0]
     cpu1_gauge = cpu_gauges.items[0]
     cpu2_gauge = cpu_gauges.items[1]
-    gpu_gauge = usage_gauges.items[1]
+    acc_gauges = usage_gauges.items[1]
+    gpu_gauge = acc_gauges.items[0]
+    ane_gauge = acc_gauges.items[1]
 
     ram_gauge = memory_gauges.items[0]
 
@@ -64,6 +70,7 @@ def main():
     ecpu_bw_gauge = bw_gauges.items[0]
     pcpu_bw_gauge = bw_gauges.items[1]
     gpu_bw_gauge = bw_gauges.items[2]
+    media_bw_gauge = bw_gauges.items[3]
 
     cpu_power_chart = power_charts.items[0]
     gpu_power_chart = power_charts.items[1]
@@ -83,8 +90,10 @@ def main():
     usage_gauges.title = cpu_title
     cpu_max_power = soc_info_dict["cpu_max_power"]
     gpu_max_power = soc_info_dict["gpu_max_power"]
+    ane_max_power = 8.0
     max_cpu_bw = soc_info_dict["cpu_max_bw"]
     max_gpu_bw = soc_info_dict["gpu_max_bw"]
+    max_media_bw = 7.0
 
     cpu_peak_power = 0
     gpu_peak_power = 0
@@ -160,6 +169,16 @@ def main():
                     ])
                     gpu_gauge.value = gpu_metrics_dict["active"]
 
+                    ane_util_percent = int(cpu_metrics_dict["ane_W"]/ane_max_power*100)
+                    ane_gauge.title = "".join([
+                        "ANE Usage: ",
+                        str(ane_util_percent),
+                        "% @ ",
+                        '{0:.1f}'.format(cpu_metrics_dict["ane_W"]),
+                        " W"
+                    ])
+                    ane_gauge.value = ane_util_percent
+
                     ram_metrics_dict = get_ram_metrics_dict()
 
                     if ram_metrics_dict["swap_total_GB"] < 0.1:
@@ -190,11 +209,9 @@ def main():
                     ecpu_read_GB = bandwidth_metrics["ECPU DCS RD"]
                     ecpu_write_GB = bandwidth_metrics["ECPU DCS WR"]
                     ecpu_bw_gauge.title = "".join([
-                        "E-CPU R:",
-                        '{0:.1f}'.format(ecpu_read_GB),
-                        "/W:",
-                        '{0:.1f}'.format(ecpu_write_GB),
-                        " GB/s"
+                        "E-CPU: ",
+                        '{0:.1f}'.format(ecpu_read_GB+ecpu_write_GB),
+                        "GB/s"
                     ])
                     ecpu_bw_gauge.value = ecpu_bw_percent
 
@@ -203,11 +220,9 @@ def main():
                     pcpu_read_GB = bandwidth_metrics["PCPU DCS RD"]
                     pcpu_write_GB = bandwidth_metrics["PCPU DCS WR"]
                     pcpu_bw_gauge.title = "".join([
-                        "P-CPU R:",
-                        '{0:.1f}'.format(pcpu_read_GB),
-                        "/W:",
-                        '{0:.1f}'.format(pcpu_write_GB),
-                        " GB/s"
+                        "P-CPU: ",
+                        '{0:.1f}'.format(pcpu_read_GB+pcpu_write_GB),
+                        "GB/s"
                     ])
                     pcpu_bw_gauge.value = pcpu_bw_percent
 
@@ -216,13 +231,19 @@ def main():
                     gpu_read_GB = bandwidth_metrics["GFX DCS RD"]
                     gpu_write_GB = bandwidth_metrics["GFX DCS WR"]
                     gpu_bw_gauge.title = "".join([
-                        "GPU R:",
-                        '{0:.1f}'.format(gpu_read_GB),
-                        "/W:",
-                        '{0:.1f}'.format(gpu_write_GB),
-                        " GB/s"
+                        "GPU: ",
+                        '{0:.1f}'.format(gpu_read_GB+gpu_write_GB),
+                        "GB/s"
                     ])
                     gpu_bw_gauge.value = gpu_bw_percent
+
+                    media_bw_percent = int(bandwidth_metrics["MEDIA DCS"]/max_media_bw*100)
+                    media_bw_gauge.title = "".join([
+                        "Media: ",
+                        '{0:.1f}'.format(bandwidth_metrics["MEDIA DCS"]),
+                        "GB/s"
+                    ])
+                    media_bw_gauge.value = media_bw_percent
 
                     total_bw_GB = bandwidth_metrics["DCS RD"] + bandwidth_metrics["DCS WR"]
                     bw_gauges.title = "".join([
