@@ -21,6 +21,8 @@ def parse_bandwidth_metrics(powermetrics_parse):
                    "JPG1 DCS RD", "JPG1 DCS WR",
                    "JPG DCS RD", "JPG DCS WR",
                    "DCS RD", "DCS WR"]
+    for h in data_fields:
+        bandwidth_metrics_dict[h] = 0
     for l in bandwidth_metrics:
         if l["name"] in data_fields:
             bandwidth_metrics_dict[l["name"]] = l["value"]/(1e9)
