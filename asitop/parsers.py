@@ -26,24 +26,24 @@ def parse_bandwidth_metrics(powermetrics_parse):
     for l in bandwidth_metrics:
         if l["name"] in data_fields:
             bandwidth_metrics_dict[l["name"]] = l["value"]/(1e9)
-    if "PCPU DCS RD" not in bandwidth_metrics_dict:
-        bandwidth_metrics_dict["PCPU DCS RD"] = bandwidth_metrics_dict["PCPU0 DCS RD"] + \
-            bandwidth_metrics_dict["PCPU1 DCS RD"]
-    if "PCPU DCS WR" not in bandwidth_metrics_dict:
-        bandwidth_metrics_dict["PCPU DCS WR"] = bandwidth_metrics_dict["PCPU0 DCS WR"] + \
-            bandwidth_metrics_dict["PCPU1 DCS WR"]
-    if "JPG DCS RD" not in bandwidth_metrics_dict:
-        bandwidth_metrics_dict["JPG DCS RD"] = bandwidth_metrics_dict["JPG0 DCS RD"] + \
-            bandwidth_metrics_dict["JPG1 DCS RD"]
-    if "JPG DCS WR" not in bandwidth_metrics_dict:
-        bandwidth_metrics_dict["JPG DCS WR"] = bandwidth_metrics_dict["JPG0 DCS WR"] + \
-            bandwidth_metrics_dict["JPG1 DCS WR"]
-    if "VENC DCS RD" not in bandwidth_metrics_dict:
-        bandwidth_metrics_dict["VENC DCS RD"] = bandwidth_metrics_dict["VENC0 DCS RD"] + \
-            bandwidth_metrics_dict["VENC1 DCS RD"]
-    if "VENC DCS WR" not in bandwidth_metrics_dict:
-        bandwidth_metrics_dict["VENC DCS WR"] = bandwidth_metrics_dict["VENC0 DCS WR"] + \
-            bandwidth_metrics_dict["VENC1 DCS WR"]
+    bandwidth_metrics_dict["PCPU DCS RD"] = bandwidth_metrics_dict["PCPU DCS RD"] + \
+        bandwidth_metrics_dict["PCPU0 DCS RD"] + \
+        bandwidth_metrics_dict["PCPU1 DCS RD"]
+    bandwidth_metrics_dict["PCPU DCS WR"] = bandwidth_metrics_dict["PCPU DCS WR"] + \
+        bandwidth_metrics_dict["PCPU0 DCS WR"] + \
+        bandwidth_metrics_dict["PCPU1 DCS WR"]
+    bandwidth_metrics_dict["JPG DCS RD"] = bandwidth_metrics_dict["JPG DCS RD"] + \
+        bandwidth_metrics_dict["JPG0 DCS RD"] + \
+        bandwidth_metrics_dict["JPG1 DCS RD"]
+    bandwidth_metrics_dict["JPG DCS WR"] = bandwidth_metrics_dict["JPG DCS WR"] + \
+        bandwidth_metrics_dict["JPG0 DCS WR"] + \
+        bandwidth_metrics_dict["JPG1 DCS WR"]
+    bandwidth_metrics_dict["VENC DCS RD"] = bandwidth_metrics_dict["VENC DCS RD"] + \
+        bandwidth_metrics_dict["VENC0 DCS RD"] + \
+        bandwidth_metrics_dict["VENC1 DCS RD"]
+    bandwidth_metrics_dict["VENC DCS WR"] = bandwidth_metrics_dict["VENC DCS WR"] + \
+        bandwidth_metrics_dict["VENC0 DCS WR"] + \
+        bandwidth_metrics_dict["VENC1 DCS WR"]
     bandwidth_metrics_dict["MEDIA DCS"] = sum([
         bandwidth_metrics_dict["ISP DCS RD"], bandwidth_metrics_dict["ISP DCS WR"],
         bandwidth_metrics_dict["STRM CODEC DCS RD"], bandwidth_metrics_dict["STRM CODEC DCS WR"],

@@ -4,7 +4,7 @@ long_description = 'Performance monitoring CLI tool for Apple Silicon'
 
 setup(
     name='asitop',
-    version='0.0.18',
+    version='0.0.19',
     author='Timothy Liu',
     author_email='tlkh.xms@gmail.com',
     url='https://github.com/tlkh/asitop',
