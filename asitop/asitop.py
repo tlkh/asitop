@@ -1,6 +1,5 @@
 
 import time
-import glob
 import argparse
 from collections import deque
 from dashing import VSplit, HSplit, HGauge, HChart
@@ -19,6 +18,10 @@ args = parser.parse_args()
 
 
 def main():
+    print("\nASITOP - Performance monitoring CLI tool for Apple Silicon")
+    print("You can update ASITOP by running `pip install asitop --upgrade`")
+    print("Get help at `https://github.com/tlkh/asitop`")
+    print("P.S. You are recommended to run ASITOP with `sudo asitop`\n")
     print("\n[1/3] Loading ASITOP\n")
 
     ui = VSplit(
@@ -169,12 +172,14 @@ def main():
                     ])
                     gpu_gauge.value = gpu_metrics_dict["active"]
 
-                    ane_util_percent = int(cpu_metrics_dict["ane_W"]/ane_max_power*100)
+                    ane_util_percent = int(
+                        cpu_metrics_dict["ane_W"]/args.interval/ane_max_power*100)
                     ane_gauge.title = "".join([
                         "ANE Usage: ",
                         str(ane_util_percent),
                         "% @ ",
-                        '{0:.1f}'.format(cpu_metrics_dict["ane_W"]),
+                        '{0:.1f}'.format(
+                            cpu_metrics_dict["ane_W"]/args.interval),
                         " W"
                     ])
                     ane_gauge.value = ane_util_percent
@@ -205,9 +210,11 @@ def main():
                     ram_gauge.value = ram_metrics_dict["free_percent"]
 
                     ecpu_bw_percent = int(
-                        (bandwidth_metrics["ECPU DCS RD"]+bandwidth_metrics["ECPU DCS WR"])/max_cpu_bw*100)
-                    ecpu_read_GB = bandwidth_metrics["ECPU DCS RD"]
-                    ecpu_write_GB = bandwidth_metrics["ECPU DCS WR"]
+                        (bandwidth_metrics["ECPU DCS RD"]+bandwidth_metrics["ECPU DCS WR"])/args.interval/max_cpu_bw*100)
+                    ecpu_read_GB = bandwidth_metrics["ECPU DCS RD"] / \
+                        args.interval
+                    ecpu_write_GB = bandwidth_metrics["ECPU DCS WR"] / \
+                        args.interval
                     ecpu_bw_gauge.title = "".join([
                         "E-CPU: ",
                         '{0:.1f}'.format(ecpu_read_GB+ecpu_write_GB),
@@ -216,9 +223,11 @@ def main():
                     ecpu_bw_gauge.value = ecpu_bw_percent
 
                     pcpu_bw_percent = int(
-                        (bandwidth_metrics["PCPU DCS RD"]+bandwidth_metrics["PCPU DCS WR"])/max_cpu_bw*100)
-                    pcpu_read_GB = bandwidth_metrics["PCPU DCS RD"]
-                    pcpu_write_GB = bandwidth_metrics["PCPU DCS WR"]
+                        (bandwidth_metrics["PCPU DCS RD"]+bandwidth_metrics["PCPU DCS WR"])/args.interval/max_cpu_bw*100)
+                    pcpu_read_GB = bandwidth_metrics["PCPU DCS RD"] / \
+                        args.interval
+                    pcpu_write_GB = bandwidth_metrics["PCPU DCS WR"] / \
+                        args.interval
                     pcpu_bw_gauge.title = "".join([
                         "P-CPU: ",
                         '{0:.1f}'.format(pcpu_read_GB+pcpu_write_GB),
@@ -237,26 +246,32 @@ def main():
                     ])
                     gpu_bw_gauge.value = gpu_bw_percent
 
-                    media_bw_percent = int(bandwidth_metrics["MEDIA DCS"]/max_media_bw*100)
+                    media_bw_percent = int(
+                        bandwidth_metrics["MEDIA DCS"]/args.interval/max_media_bw*100)
                     media_bw_gauge.title = "".join([
                         "Media: ",
-                        '{0:.1f}'.format(bandwidth_metrics["MEDIA DCS"]),
+                        '{0:.1f}'.format(
+                            bandwidth_metrics["MEDIA DCS"]/args.interval),
                         "GB/s"
                     ])
                     media_bw_gauge.value = media_bw_percent
 
-                    total_bw_GB = bandwidth_metrics["DCS RD"] + bandwidth_metrics["DCS WR"]
+                    total_bw_GB = (
+                        bandwidth_metrics["DCS RD"] + bandwidth_metrics["DCS WR"])/args.interval
                     bw_gauges.title = "".join([
                         "Memory Bandwidth: ",
                         '{0:.2f}'.format(total_bw_GB),
                         " GB/s (R:",
-                        '{0:.2f}'.format(bandwidth_metrics["DCS RD"]),
+                        '{0:.2f}'.format(
+                            bandwidth_metrics["DCS RD"]/args.interval),
                         "/W:",
-                        '{0:.2f}'.format(bandwidth_metrics["DCS WR"]),
+                        '{0:.2f}'.format(
+                            bandwidth_metrics["DCS WR"]/args.interval),
                         " GB/s)"
                     ])
 
-                    package_power_W = cpu_metrics_dict["package_W"]
+                    package_power_W = cpu_metrics_dict["package_W"] / \
+                        args.interval
                     if package_power_W > package_peak_power:
                         package_peak_power = package_power_W
                     avg_package_power_list.append(package_power_W)
@@ -273,8 +288,8 @@ def main():
                     ])
 
                     cpu_power_percent = int(
-                        cpu_metrics_dict["cpu_W"]/cpu_max_power*100)
-                    cpu_power_W = cpu_metrics_dict["cpu_W"]
+                        cpu_metrics_dict["cpu_W"]/args.interval/cpu_max_power*100)
+                    cpu_power_W = cpu_metrics_dict["cpu_W"]/args.interval
                     if cpu_power_W > cpu_peak_power:
                         cpu_peak_power = cpu_power_W
                     avg_cpu_power_list.append(cpu_power_W)
@@ -291,8 +306,8 @@ def main():
                     cpu_power_chart.append(cpu_power_percent)
 
                     gpu_power_percent = int(
-                        cpu_metrics_dict["gpu_W"]/gpu_max_power*100)
-                    gpu_power_W = cpu_metrics_dict["gpu_W"]
+                        cpu_metrics_dict["gpu_W"]/args.interval/gpu_max_power*100)
+                    gpu_power_W = cpu_metrics_dict["gpu_W"]/args.interval
                     if gpu_power_W > gpu_peak_power:
                         gpu_peak_power = gpu_power_W
                     avg_gpu_power_list.append(gpu_power_W)
@@ -313,14 +328,17 @@ def main():
             time.sleep(args.interval)
 
     except KeyboardInterrupt:
-        pass
+        print("Stopping...")
 
     return powermetrics_process
 
 
 if __name__ == "__main__":
     powermetrics_process = main()
-    for tmpf in glob.glob("/tmp/asitop_powermetrics*"):
-        os.remove(tmpf)
-    powermetrics_process.terminate()
-    print("Successfully terminated powermetrics process")
+    try:
+        powermetrics_process.terminate()
+        print("Successfully terminated powermetrics process")
+    except Exception as e:
+        print(e)
+        powermetrics_process.terminate()
+        print("Successfully terminated powermetrics process")

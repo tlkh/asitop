@@ -1,6 +1,5 @@
-import platform
 import os
-import time
+import glob
 import subprocess
 from subprocess import PIPE
 import psutil
@@ -44,25 +43,41 @@ def convert_to_GB(value):
 
 
 def run_powermetrics_process(timecode, nice=10, interval=1000):
-    ver, *_ = platform.mac_ver()
-    major_ver = int(ver.split(".")[0])
-    output_file_flag = "-u"
-
-    if major_ver >= 12:
+    #ver, *_ = platform.mac_ver()
+    #major_ver = int(ver.split(".")[0])
+    for tmpf in glob.glob("/tmp/asitop_powermetrics*"):
+        os.remove(tmpf)
+    try:
         output_file_flag = "-o"
-
-    command = " ".join([
-        "sudo nice -n",
-        str(nice),
-        "powermetrics",
-        "--samplers cpu_power,gpu_power,thermal,bandwidth", 
-        output_file_flag,
-        "/tmp/asitop_powermetrics"+timecode,
-        "-f plist",
-        "-i",
-        str(interval)
-    ])
-    return subprocess.Popen(command.split(" "), stdin=PIPE, stdout=PIPE)
+        command = " ".join([
+            "sudo nice -n",
+            str(nice),
+            "powermetrics",
+            "--samplers cpu_power,gpu_power,thermal,bandwidth",
+            output_file_flag,
+            "/tmp/asitop_powermetrics"+timecode,
+            "-f plist",
+            "-i",
+            str(interval)
+        ])
+        process = subprocess.Popen(command.split(" "), stdin=PIPE, stdout=PIPE)
+    except Exception as e:
+        print("Error starting powermetrics process", e)
+        print("Switch output_file_flag to `-u`")
+        output_file_flag = "-u"
+        command = " ".join([
+            "sudo nice -n",
+            str(nice),
+            "powermetrics",
+            "--samplers cpu_power,gpu_power,thermal,bandwidth",
+            output_file_flag,
+            "/tmp/asitop_powermetrics"+timecode,
+            "-f plist",
+            "-i",
+            str(interval)
+        ])
+        process = subprocess.Popen(command.split(" "), stdin=PIPE, stdout=PIPE)
+    return process
 
 
 def get_ram_metrics_dict():
@@ -102,7 +117,7 @@ def get_cpu_info():
                 value = l.split(":")[1].strip()
                 cpu_info_dict[h] = value
     return cpu_info_dict
-    
+
 
 def get_core_counts():
     cores_info = os.popen('sysctl -a | grep hw.perflevel').read()
@@ -119,7 +134,8 @@ def get_core_counts():
 
 def get_gpu_cores():
     try:
-        cores = os.popen("system_profiler -detailLevel basic SPDisplaysDataType | grep 'Total Number of Cores'").read()
+        cores = os.popen(
+            "system_profiler -detailLevel basic SPDisplaysDataType | grep 'Total Number of Cores'").read()
         cores = int(cores.split(": ")[-1])
     except:
         cores = "?"
