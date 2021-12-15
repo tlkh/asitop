@@ -61,6 +61,9 @@ def run_powermetrics_process(timecode, nice=10, interval=1000):
             str(interval)
         ])
         process = subprocess.Popen(command.split(" "), stdin=PIPE, stdout=PIPE)
+        rc = process.returncode
+        if rc != 0:
+            raise Exception("powermetrics output file flag")
     except Exception as e:
         print("Error starting powermetrics process", e)
         print("Switch output_file_flag to `-u`")
