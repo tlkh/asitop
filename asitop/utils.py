@@ -47,39 +47,19 @@ def run_powermetrics_process(timecode, nice=10, interval=1000):
     #major_ver = int(ver.split(".")[0])
     for tmpf in glob.glob("/tmp/asitop_powermetrics*"):
         os.remove(tmpf)
-    try:
-        output_file_flag = "-o"
-        command = " ".join([
-            "sudo nice -n",
-            str(nice),
-            "powermetrics",
-            "--samplers cpu_power,gpu_power,thermal,bandwidth",
-            output_file_flag,
-            "/tmp/asitop_powermetrics"+timecode,
-            "-f plist",
-            "-i",
-            str(interval)
-        ])
-        process = subprocess.Popen(command.split(" "), stdin=PIPE, stdout=PIPE)
-        rc = process.returncode
-        if rc != 0:
-            raise Exception("powermetrics output file flag")
-    except Exception as e:
-        print("Error starting powermetrics process", e)
-        print("Switch output_file_flag to `-u`")
-        output_file_flag = "-u"
-        command = " ".join([
-            "sudo nice -n",
-            str(nice),
-            "powermetrics",
-            "--samplers cpu_power,gpu_power,thermal,bandwidth",
-            output_file_flag,
-            "/tmp/asitop_powermetrics"+timecode,
-            "-f plist",
-            "-i",
-            str(interval)
-        ])
-        process = subprocess.Popen(command.split(" "), stdin=PIPE, stdout=PIPE)
+    output_file_flag = "-o"
+    command = " ".join([
+        "sudo nice -n",
+        str(nice),
+        "powermetrics",
+        "--samplers cpu_power,gpu_power,thermal,bandwidth",
+        output_file_flag,
+        "/tmp/asitop_powermetrics"+timecode,
+        "-f plist",
+        "-i",
+        str(interval)
+    ])
+    process = subprocess.Popen(command.split(" "), stdin=PIPE, stdout=PIPE)
     return process
 
 
@@ -175,6 +155,9 @@ def get_soc_info():
     elif soc_info["name"] == "Apple M1":
         soc_info["cpu_max_power"] = 20
         soc_info["gpu_max_power"] = 20
+    elif soc_info["name"] == "Apple M1 Ultra":
+        soc_info["cpu_max_power"] = 60
+        soc_info["gpu_max_power"] = 120
     else:
         soc_info["cpu_max_power"] = 20
         soc_info["gpu_max_power"] = 20
@@ -188,6 +171,9 @@ def get_soc_info():
     elif soc_info["name"] == "Apple M1":
         soc_info["cpu_max_bw"] = 70
         soc_info["gpu_max_bw"] = 70
+    elif soc_info["name"] == "Apple M1 Ultra":
+        soc_info["cpu_max_bw"] = 500
+        soc_info["gpu_max_bw"] = 800
     else:
         soc_info["cpu_max_bw"] = 70
         soc_info["gpu_max_bw"] = 70
