@@ -2,7 +2,7 @@
 import time
 import argparse
 from collections import deque
-from dashing import VSplit, HSplit, HGauge, HChart
+from dashing import VSplit, HSplit, HGauge, HChart, VGauge
 from .utils import *
 
 
@@ -14,6 +14,8 @@ parser.add_argument('--color', type=int, default=2,
                     help='Choose display color (0~8)')
 parser.add_argument('--avg', type=int, default=30,
                     help='Interval for averaged values (seconds)')
+parser.add_argument('--show_cores', type=bool, default=False,
+                    help='Choose show cores mode')
 args = parser.parse_args()
 
 
@@ -24,61 +26,91 @@ def main():
     print("P.S. You are recommended to run ASITOP with `sudo asitop`\n")
     print("\n[1/3] Loading ASITOP\n")
 
-    ui = VSplit(
+    cpu1_gauge = HGauge(title="E-CPU Usage", val=0, color=args.color)
+    cpu2_gauge = HGauge(title="P-CPU Usage", val=0, color=args.color)
+    gpu_gauge = HGauge(title="GPU Usage", val=0, color=args.color)
+    ane_gauge = HGauge(title="ANE", val=0, color=args.color)
+    gpu_ane_gauges = [gpu_gauge, ane_gauge]
+
+    soc_info_dict = get_soc_info()
+    e_core_count = soc_info_dict["e_core_count"]
+    e_core_gauges = [VGauge(val=0, color=args.color, border_color=2) for _ in range(e_core_count)]
+    p_core_count = soc_info_dict["p_core_count"]
+    p_core_gauges = [VGauge(val=0, color=args.color, border_color=2) for _ in range(min(p_core_count, 8))]
+    p_core_split = [HSplit(
+                *p_core_gauges,
+            )]
+    if p_core_count > 8:
+        p_core_gauges_ext = [VGauge(val=0, color=args.color, border_color=2) for _ in range(p_core_count - 8)]
+        p_core_split.append(HSplit(
+                *p_core_gauges_ext,
+            ))
+
+    ram_gauge = HGauge(title="RAM Usage", val=0, color=args.color)
+    ecpu_bw_gauge = HGauge(title="E-CPU B/W", val=50, color=args.color)
+    pcpu_bw_gauge = HGauge(title="P-CPU B/W", val=50, color=args.color)
+    gpu_bw_gauge = HGauge(title="GPU B/W", val=50, color=args.color)
+    media_bw_gauge = HGauge(title="Media B/W", val=50, color=args.color)
+    memory_gauges = VSplit(
+                ram_gauge,
+                HSplit(
+                    ecpu_bw_gauge,
+                    pcpu_bw_gauge,
+                    gpu_bw_gauge,
+                    media_bw_gauge,
+                ),
+                border_color=args.color,
+                title="Memory"
+            )
+
+    cpu_power_chart = HChart(title="CPU Power", color=args.color)
+    gpu_power_chart = HChart(title="GPU Power", color=args.color)
+    power_charts = VSplit(
+                cpu_power_chart,
+                gpu_power_chart,
+                title="Power Chart",
+                border_color=args.color,
+            ) if args.show_cores else HSplit(
+        cpu_power_chart,
+        gpu_power_chart,
+        title="Power Chart",
+        border_color=args.color,
+    )
+
+    ui = HSplit(
         VSplit(
+            cpu1_gauge,
             HSplit(
-                HGauge(title="E-CPU Usage", val=0, color=args.color),
-                HGauge(title="P-CPU Usage", val=0, color=args.color),
+                *e_core_gauges,
             ),
-            HSplit(
-                HGauge(title="GPU Usage", val=0, color=args.color),
-                HGauge(title="ANE", val=0, color=args.color),
-            ),
+            cpu2_gauge,
+            *p_core_split,
+            *gpu_ane_gauges,
             title="Processor Utilization",
             border_color=args.color,
         ),
         VSplit(
-            HGauge(title="RAM Usage", val=0, color=args.color),
+            memory_gauges,
+            power_charts,
+        )
+    ) if args.show_cores else VSplit(
+        VSplit(
             HSplit(
-                HGauge(title="E-CPU B/W", val=50, color=args.color),
-                HGauge(title="P-CPU B/W", val=50, color=args.color),
-                HGauge(title="GPU B/W", val=50, color=args.color),
-                HGauge(title="Media B/W", val=50, color=args.color),
+                cpu1_gauge,
+                cpu2_gauge,
             ),
-            border_color=args.color,
-            title="Memory"
-        ),
-        HSplit(
-            HChart(title="CPU Power", color=args.color),
-            HChart(title="GPU Power", color=args.color),
-            title="Power Chart",
+            HSplit(
+                *gpu_ane_gauges,
+            ),
+            title="Processor Utilization",
             border_color=args.color,
         ),
+        memory_gauges,
+        power_charts,
     )
 
     usage_gauges = ui.items[0]
-    memory_gauges = ui.items[1]
-    power_charts = ui.items[2]
-
-    cpu_gauges = usage_gauges.items[0]
-    cpu1_gauge = cpu_gauges.items[0]
-    cpu2_gauge = cpu_gauges.items[1]
-    acc_gauges = usage_gauges.items[1]
-    gpu_gauge = acc_gauges.items[0]
-    ane_gauge = acc_gauges.items[1]
-
-    ram_gauge = memory_gauges.items[0]
-
     bw_gauges = memory_gauges.items[1]
-    ecpu_bw_gauge = bw_gauges.items[0]
-    pcpu_bw_gauge = bw_gauges.items[1]
-    gpu_bw_gauge = bw_gauges.items[2]
-    media_bw_gauge = bw_gauges.items[3]
-
-    cpu_power_chart = power_charts.items[0]
-    gpu_power_chart = power_charts.items[1]
-
-    soc_info_dict = get_soc_info()
 
     cpu_title = "".join([
         soc_info_dict["name"],
@@ -162,6 +194,32 @@ def main():
                         " MHz"
                     ])
                     cpu2_gauge.value = cpu_metrics_dict["P-Cluster_active"]
+
+                    if args.show_cores:
+                        for i in range(e_core_count):
+                            e_core_gauges[i].title = "".join([
+                                "Core-" + str(i+1) + " ",
+                                str(cpu_metrics_dict["E-Cluster" + str(i) + "_active"]),
+                                "%",
+                            ])
+                            e_core_gauges[i].value = cpu_metrics_dict["E-Cluster" + str(i) + "_active"]
+                        for i in range(min(p_core_count, 8)):
+                            j = i + e_core_count
+                            p_core_gauges[i].title = "".join([
+                                ("Core-" if p_core_count < 8 else 'C-') + str(j+1) + " ",
+                                str(cpu_metrics_dict["P-Cluster" + str(j) + "_active"]),
+                                "%",
+                            ])
+                            p_core_gauges[i].value = cpu_metrics_dict["P-Cluster" + str(j) + "_active"]
+                        if p_core_count > 8:
+                            for i in range(p_core_count - 8):
+                                j = i + e_core_count + 8
+                                p_core_gauges[i].title = "".join([
+                                    'C-' + str(j + 1) + " ",
+                                    str(cpu_metrics_dict["P-Cluster" + str(j) + "_active"]),
+                                    "%",
+                                ])
+                                p_core_gauges[i].value = cpu_metrics_dict["P-Cluster" + str(j) + "_active"]
 
                     gpu_gauge.title = "".join([
                         "GPU Usage: ",
