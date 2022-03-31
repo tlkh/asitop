@@ -34,14 +34,14 @@ def main():
 
     soc_info_dict = get_soc_info()
     e_core_count = soc_info_dict["e_core_count"]
-    e_core_gauges = [VGauge(val=0, color=args.color, border_color=2) for _ in range(e_core_count)]
+    e_core_gauges = [VGauge(val=0, color=args.color, border_color=args.color) for _ in range(e_core_count)]
     p_core_count = soc_info_dict["p_core_count"]
-    p_core_gauges = [VGauge(val=0, color=args.color, border_color=2) for _ in range(min(p_core_count, 8))]
+    p_core_gauges = [VGauge(val=0, color=args.color, border_color=args.color) for _ in range(min(p_core_count, 8))]
     p_core_split = [HSplit(
                 *p_core_gauges,
             )]
     if p_core_count > 8:
-        p_core_gauges_ext = [VGauge(val=0, color=args.color, border_color=2) for _ in range(p_core_count - 8)]
+        p_core_gauges_ext = [VGauge(val=0, color=args.color, border_color=args.color) for _ in range(p_core_count - 8)]
         p_core_split.append(HSplit(
                 *p_core_gauges_ext,
             ))
