@@ -85,6 +85,7 @@ def parse_cpu_metrics(powermetrics_parse):
         cpu_metric_dict[name+"_freq_Mhz"] = int(cluster["freq_hz"]/(1e6))
         cpu_metric_dict[name+"_active"] = int((1 - cluster["idle_ratio"])*100)
         for cpu in cluster["cpus"]:
+            name = 'E-Cluster' if name[0] == 'E' else 'P-Cluster'
             cpu_metric_dict[name + str(cpu["cpu"]) + "_freq_Mhz"] = int(cpu["freq_hz"] / (1e6))
             cpu_metric_dict[name + str(cpu["cpu"]) + "_active"] = int((1 - cpu["idle_ratio"]) * 100)
     if "E-Cluster_active" not in cpu_metric_dict:

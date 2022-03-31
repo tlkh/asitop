@@ -206,7 +206,7 @@ def main():
                         for i in range(min(p_core_count, 8)):
                             j = i + e_core_count
                             p_core_gauges[i].title = "".join([
-                                ("Core-" if p_core_count < 8 else 'C-') + str(j+1) + " ",
+                                ("Core-" if p_core_count < 6 else 'C-') + str(j+1) + " ",
                                 str(cpu_metrics_dict["P-Cluster" + str(j) + "_active"]),
                                 "%",
                             ])
