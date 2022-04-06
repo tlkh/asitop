@@ -196,30 +196,23 @@ def main():
                     cpu2_gauge.value = cpu_metrics_dict["P-Cluster_active"]
 
                     if args.show_cores:
-                        for i in range(e_core_count):
+                        for i in cpu_metrics_dict["e_core"]:
                             e_core_gauges[i].title = "".join([
                                 "Core-" + str(i+1) + " ",
                                 str(cpu_metrics_dict["E-Cluster" + str(i) + "_active"]),
                                 "%",
                             ])
                             e_core_gauges[i].value = cpu_metrics_dict["E-Cluster" + str(i) + "_active"]
-                        for i in range(min(p_core_count, 8)):
-                            j = i + e_core_count
-                            p_core_gauges[i].title = "".join([
-                                ("Core-" if p_core_count < 6 else 'C-') + str(j+1) + " ",
-                                str(cpu_metrics_dict["P-Cluster" + str(j) + "_active"]),
+                        core_count = 0
+                        for i in cpu_metrics_dict["p_core"]:
+                            core_gauges = p_core_gauges if core_count < 8 else p_core_gauges_ext
+                            core_gauges[core_count % 8].title = "".join([
+                                ("Core-" if p_core_count < 6 else 'C-') + str(i+1) + " ",
+                                str(cpu_metrics_dict["P-Cluster" + str(i) + "_active"]),
                                 "%",
                             ])
-                            p_core_gauges[i].value = cpu_metrics_dict["P-Cluster" + str(j) + "_active"]
-                        if p_core_count > 8:
-                            for i in range(p_core_count - 8):
-                                j = i + e_core_count + 8
-                                p_core_gauges[i].title = "".join([
-                                    'C-' + str(j + 1) + " ",
-                                    str(cpu_metrics_dict["P-Cluster" + str(j) + "_active"]),
-                                    "%",
-                                ])
-                                p_core_gauges[i].value = cpu_metrics_dict["P-Cluster" + str(j) + "_active"]
+                            core_gauges[core_count % 8].value = cpu_metrics_dict["P-Cluster" + str(i) + "_active"]
+                            core_count += 1
 
                     gpu_gauge.title = "".join([
                         "GPU Usage: ",
