@@ -203,7 +203,7 @@ def main():
                                 str(cpu_metrics_dict["E-Cluster" + str(i) + "_active"]),
                                 "%",
                             ])
-                            e_core_gauges[i].value = cpu_metrics_dict["E-Cluster" + str(i) + "_active"]
+                            e_core_gauges[core_count % 4].value = cpu_metrics_dict["E-Cluster" + str(i) + "_active"]
                             core_count += 1
                         core_count = 0
                         for i in cpu_metrics_dict["p_core"]:
