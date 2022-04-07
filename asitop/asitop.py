@@ -196,13 +196,15 @@ def main():
                     cpu2_gauge.value = cpu_metrics_dict["P-Cluster_active"]
 
                     if args.show_cores:
+                        core_count = 0
                         for i in cpu_metrics_dict["e_core"]:
-                            e_core_gauges[i].title = "".join([
+                            e_core_gauges[core_count % 4].title = "".join([
                                 "Core-" + str(i+1) + " ",
                                 str(cpu_metrics_dict["E-Cluster" + str(i) + "_active"]),
                                 "%",
                             ])
                             e_core_gauges[i].value = cpu_metrics_dict["E-Cluster" + str(i) + "_active"]
+                            core_count += 1
                         core_count = 0
                         for i in cpu_metrics_dict["p_core"]:
                             core_gauges = p_core_gauges if core_count < 8 else p_core_gauges_ext
