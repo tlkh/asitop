@@ -56,6 +56,18 @@ def main():
                 HSplit(
                     ecpu_bw_gauge,
                     pcpu_bw_gauge,
+                ),
+                HSplit(
+                    gpu_bw_gauge,
+                    media_bw_gauge,
+                ),
+                border_color=args.color,
+                title="Memory"
+            ) if args.show_cores else VSplit(
+                ram_gauge,
+                HSplit(
+                    ecpu_bw_gauge,
+                    pcpu_bw_gauge,
                     gpu_bw_gauge,
                     media_bw_gauge,
                 ),
@@ -322,6 +334,9 @@ def main():
                             bandwidth_metrics["DCS WR"]/args.interval),
                         " GB/s)"
                     ])
+                    if args.show_cores:
+                        bw_gauges2 = memory_gauges.items[2]
+                        bw_gauges2.title = "Memory Bandwidth:"
 
                     package_power_W = cpu_metrics_dict["package_W"] / \
                         args.interval
