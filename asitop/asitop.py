@@ -23,6 +23,7 @@ def main():
     print("Get help at `https://github.com/tlkh/asitop`")
     print("P.S. You are recommended to run ASITOP with `sudo asitop`\n")
     print("\n[1/3] Loading ASITOP\n")
+    print("\033[?25l")
 
     cpu1_gauge = HGauge(title="E-CPU Usage", val=0, color=args.color)
     cpu2_gauge = HGauge(title="P-CPU Usage", val=0, color=args.color)
@@ -388,6 +389,7 @@ def main():
 
     except KeyboardInterrupt:
         print("Stopping...")
+        print("\033[?25h")
 
     return powermetrics_process
 
