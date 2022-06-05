@@ -1,23 +1,10 @@
 import time
-import argparse
 from collections import deque
 from dashing import VSplit, HSplit, HGauge, HChart, VGauge
-from .utils import *
-
-parser = argparse.ArgumentParser(
-    description='asitop: Performance monitoring CLI tool for Apple Silicon')
-parser.add_argument('--interval', type=int, default=1,
-                    help='Display interval and sampling interval for powermetrics (seconds)')
-parser.add_argument('--color', type=int, default=2,
-                    help='Choose display color (0~8)')
-parser.add_argument('--avg', type=int, default=30,
-                    help='Interval for averaged values (seconds)')
-parser.add_argument('--show_cores', type=bool, default=False,
-                    help='Choose show cores mode')
-args = parser.parse_args()
+from asitop.utils import *
 
 
-def main():
+def main(args):
     print("\nASITOP - Performance monitoring CLI tool for Apple Silicon")
     print("You can update ASITOP by running `pip install asitop --upgrade`")
     print("Get help at `https://github.com/tlkh/asitop`")
@@ -392,14 +379,3 @@ def main():
         print("\033[?25h")
 
     return powermetrics_process
-
-
-if __name__ == "__main__":
-    powermetrics_process = main()
-    try:
-        powermetrics_process.terminate()
-        print("Successfully terminated powermetrics process")
-    except Exception as e:
-        print(e)
-        powermetrics_process.terminate()
-        print("Successfully terminated powermetrics process")
