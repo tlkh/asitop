@@ -13,7 +13,7 @@ parser.add_argument('--color', type=int, default=2,
 parser.add_argument('--avg', type=int, default=30,
                     help='Interval for averaged values (seconds)')
 parser.add_argument('--show_cores', type=bool, default=False,
-                    help='Choose show cores mode')
+                    help='Choose show cores mode (True|False)')
 args = parser.parse_args()
 
 

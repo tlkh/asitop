@@ -44,12 +44,13 @@ sudo asitop
 asitop
 
 # advanced options
-asitop [-h] [--interval INTERVAL] [--color COLOR] [--avg AVG]
+asitop [-h] [--interval INTERVAL] [--color COLOR] [--avg AVG] [--show_cores SHOW_CORES]
 optional arguments:
-  -h, --help           show this help message and exit
-  --interval INTERVAL  Display interval and sampling interval for powermetrics (seconds)
-  --color COLOR        Choose display color (0~8)
-  --avg AVG            Interval for averaged values (seconds)
+  -h, --help                show this help message and exit
+  --interval INTERVAL       Display interval and sampling interval for powermetrics (seconds)
+  --color COLOR             Choose display color (0~8)
+  --avg AVG                 Interval for averaged values (seconds)
+  --show_cores SHOW_CORES   Choose show cores mode (True|False)
 ```
 
 ## How it works
