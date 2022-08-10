@@ -165,8 +165,16 @@ def main():
 
     clear_console()
 
+    count=0
     try:
         while True:
+            if (count >= 1800):
+                count = 0
+                powermetrics_process.terminate()
+                timecode = str(int(time.time()))
+                powermetrics_process = run_powermetrics_process(
+                    timecode, interval=args.interval * 1000)
+            count += 1
             ready = parse_powermetrics(timecode=timecode)
             if ready:
                 cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp = ready
