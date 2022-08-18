@@ -144,14 +144,15 @@ def main():
 
     powermetrics_process = run_powermetrics_process(timecode,
                                                     interval=args.interval * 1000)
+    queue, _thread = build_enqueue_thread(powermetrics_process.stdout)
 
     print("\n[3/3] Waiting for first reading...\n")
 
     def get_reading(wait=0.1):
-        ready = parse_powermetrics(timecode=timecode)
+        ready = parse_powermetrics(queue)
         while not ready:
             time.sleep(wait)
-            ready = parse_powermetrics(timecode=timecode)
+            ready = parse_powermetrics(queue)
         return ready
 
     ready = get_reading()
@@ -177,8 +178,9 @@ def main():
                     timecode = str(int(time.time()))
                     powermetrics_process = run_powermetrics_process(
                         timecode, interval=args.interval * 1000)
+                    queue, _thread = build_enqueue_thread(powermetrics_process.stdout)
                 count += 1
-            ready = parse_powermetrics(timecode=timecode)
+            ready = parse_powermetrics(queue)
             if ready:
                 cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp = ready
 
