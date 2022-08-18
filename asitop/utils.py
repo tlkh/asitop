@@ -1,5 +1,4 @@
 import os
-import glob
 import subprocess
 from queue import LifoQueue
 from subprocess import PIPE

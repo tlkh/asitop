@@ -14,8 +14,6 @@ parser.add_argument('--avg', type=int, default=30,
                     help='Interval for averaged values (seconds)')
 parser.add_argument('--show_cores', type=bool, default=False,
                     help='Choose show cores mode')
-parser.add_argument('--max_count', type=int, default=0,
-                    help='Max show count to restart powermetrics')
 args = parser.parse_args()
 
 
@@ -165,17 +163,8 @@ def main():
 
     clear_console()
 
-    count=0
     try:
         while True:
-            if args.max_count > 0:
-                if count >= args.max_count:
-                    count = 0
-                    powermetrics_process.terminate()
-                    powermetrics_process = run_powermetrics_process(
-                        interval=args.interval * 1000)
-                    queue, _thread = build_enqueue_thread(powermetrics_process.stdout)
-                count += 1
             ready = parse_powermetrics(queue)
             if ready:
                 cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp = ready
