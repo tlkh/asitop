@@ -9,7 +9,7 @@ from .parsers import *
 import plistlib
 
 
-def parse_powermetrics(queue, timecode="0"):
+def parse_powermetrics(queue):
     try:
         # a Last in First out queue
         data = queue.get()
@@ -33,6 +33,13 @@ def convert_to_GB(value):
     return round(value/1024/1024/1024, 1)
 
 def enqueue_powermetrics(buffered_reader, queue_in):
+    """
+    a helper to convert the output of `powermetrics`
+      into list of plist strings.
+
+    buffered_reader: stdout of the `powermetrics` process
+    queue_in: a LIFO queue, will also be provided to the parser
+    """
     buffer = b''
     for line in buffered_reader:
         # magic string
@@ -43,17 +50,21 @@ def enqueue_powermetrics(buffered_reader, queue_in):
             buffer += line
 
 def build_enqueue_thread(powermetrics_stdout):
+    """
+    build a thread to run enqueue_powermetrics()
+    returns:
+        queue: the LIFO queue, containing plist strings
+        equeue_thread: the identifier of the thread
+    """
     queue = LifoQueue()
     enqueue_thread = Thread(target=enqueue_powermetrics,
                             args=(powermetrics_stdout, queue))
     enqueue_thread.start()
     return queue, enqueue_thread
 
-def run_powermetrics_process(timecode, nice=10, interval=1000):
+def run_powermetrics_process(nice=10, interval=1000):
     #ver, *_ = platform.mac_ver()
     #major_ver = int(ver.split(".")[0])
-    for tmpf in glob.glob("/tmp/asitop_powermetrics*"):
-        os.remove(tmpf)
     command = " ".join([
         "sudo nice -n",
         str(nice),

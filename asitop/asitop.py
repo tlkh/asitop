@@ -140,10 +140,7 @@ def main():
 
     print("\n[2/3] Starting powermetrics process\n")
 
-    timecode = str(int(time.time()))
-
-    powermetrics_process = run_powermetrics_process(timecode,
-                                                    interval=args.interval * 1000)
+    powermetrics_process = run_powermetrics_process(interval=args.interval * 1000)
     queue, _thread = build_enqueue_thread(powermetrics_process.stdout)
 
     print("\n[3/3] Waiting for first reading...\n")
@@ -175,9 +172,8 @@ def main():
                 if count >= args.max_count:
                     count = 0
                     powermetrics_process.terminate()
-                    timecode = str(int(time.time()))
                     powermetrics_process = run_powermetrics_process(
-                        timecode, interval=args.interval * 1000)
+                        interval=args.interval * 1000)
                     queue, _thread = build_enqueue_thread(powermetrics_process.stdout)
                 count += 1
             ready = parse_powermetrics(queue)
