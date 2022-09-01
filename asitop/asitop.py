@@ -2,7 +2,12 @@ import time
 import argparse
 from collections import deque
 from dashing import VSplit, HSplit, HGauge, HChart, VGauge
-from .utils import *
+from .utils import (build_enqueue_thread,
+                    clear_console,
+                    get_ram_metrics_dict,
+                    get_soc_info,
+                    parse_powermetrics,
+                    run_powermetrics_process)
 
 parser = argparse.ArgumentParser(
     description='asitop: Performance monitoring CLI tool for Apple Silicon')
