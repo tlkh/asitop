@@ -388,7 +388,6 @@ def main():
 
                     ui.display()
 
-            time.sleep(args.interval)
 
     except KeyboardInterrupt:
         print("Stopping...")
