@@ -50,7 +50,7 @@ def run_powermetrics_process(timecode, nice=10, interval=1000):
     #ver, *_ = platform.mac_ver()
     #major_ver = int(ver.split(".")[0])
     for tmpf in glob.glob("/tmp/asitop_powermetrics*"):
-        subprocess.Popen(["sudo","rm",'"'+tmpf+'"'])
+        subprocess.Popen(["sudo","rm",tmpf])
     output_file_flag = "-o"
     command = " ".join([
         "sudo nice -n",
