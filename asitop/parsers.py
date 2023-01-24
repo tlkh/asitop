@@ -124,10 +124,10 @@ def parse_cpu_metrics(powermetrics_parse):
                 cpu_metric_dict["P0-Cluster_freq_Mhz"], cpu_metric_dict["P1-Cluster_freq_Mhz"])
     # power
     cpu_metric_dict["ane_W"] = cpu_metrics["ane_energy"]/1000
-    cpu_metric_dict["dram_W"] = cpu_metrics["dram_energy"]/1000
+    #cpu_metric_dict["dram_W"] = cpu_metrics["dram_energy"]/1000
     cpu_metric_dict["cpu_W"] = cpu_metrics["cpu_energy"]/1000
     cpu_metric_dict["gpu_W"] = cpu_metrics["gpu_energy"]/1000
-    cpu_metric_dict["package_W"] = cpu_metrics["package_energy"]/1000
+    cpu_metric_dict["package_W"] = cpu_metrics["combined_power"]/1000
     return cpu_metric_dict
 
 
