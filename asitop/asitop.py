@@ -62,29 +62,28 @@ def main():
     )
 
     ram_gauge = HGauge(title="RAM Usage", val=0, color=args.color)
-    """
-    ecpu_bw_gauge = HGauge(title="E-CPU B/W", val=50, color=args.color)
-    pcpu_bw_gauge = HGauge(title="P-CPU B/W", val=50, color=args.color)
-    gpu_bw_gauge = HGauge(title="GPU B/W", val=50, color=args.color)
-    media_bw_gauge = HGauge(title="Media B/W", val=50, color=args.color)
-    bw_gauges = [HSplit(
-        ecpu_bw_gauge,
-        pcpu_bw_gauge,
+    disk_read_chart = HChart(title="Disk Read", color=args.color)
+    disk_write_chart = HChart(title="Disk Write", color=args.color)
+    network_download_chart = HChart(title="Network Download", color=args.color)
+    network_upload_chart = HChart(title="Network Upload", color=args.color)
+    bw_charts = [HSplit(
+        disk_read_chart,
+        disk_write_chart,
     ),
         HSplit(
-            gpu_bw_gauge,
-            media_bw_gauge,
+            network_download_chart,
+            network_upload_chart,
         )] if args.show_cores else [
         HSplit(
-            ecpu_bw_gauge,
-            pcpu_bw_gauge,
-            gpu_bw_gauge,
-            media_bw_gauge,
+            disk_read_chart,
+            disk_write_chart,
+            network_download_chart,
+            network_upload_chart,
         )]
-    """
+
     memory_gauges = VSplit(
         ram_gauge,
-        #*bw_gauges,
+        *bw_charts,
         border_color=args.color,
         title="Memory"
     )
@@ -116,7 +115,7 @@ def main():
     )
 
     usage_gauges = ui.items[0]
-    #bw_gauges = memory_gauges.items[1]
+    bw_charts = memory_gauges.items[1]
 
     cpu_title = "".join([
         soc_info_dict["name"],
@@ -182,7 +181,7 @@ def main():
                 count += 1
             ready = parse_powermetrics(timecode=timecode)
             if ready:
-                cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp = ready
+                cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, network_metrics_dict, disk_metrics_dict, timestamp = ready
 
                 if timestamp > last_timestamp:
                     last_timestamp = timestamp
@@ -277,74 +276,47 @@ def main():
                         ])
                     ram_gauge.value = ram_metrics_dict["free_percent"]
 
-                    """
-
-                    ecpu_bw_percent = int(
-                        (bandwidth_metrics["ECPU DCS RD"] + bandwidth_metrics[
-                            "ECPU DCS WR"]) / args.interval / max_cpu_bw * 100)
-                    ecpu_read_GB = bandwidth_metrics["ECPU DCS RD"] / \
-                                   args.interval
-                    ecpu_write_GB = bandwidth_metrics["ECPU DCS WR"] / \
-                                    args.interval
-                    ecpu_bw_gauge.title = "".join([
-                        "E-CPU: ",
-                        '{0:.1f}'.format(ecpu_read_GB + ecpu_write_GB),
-                        "GB/s"
+                    disk_read_rate=disk_metrics_dict["read_rate"]
+                    disk_read_chart.title = "".join([
+                        "Disk Read: ",
+                        '{0:.1f}'.format(disk_read_rate),
+                        "MB/s"
                     ])
-                    ecpu_bw_gauge.value = ecpu_bw_percent
+                    disk_read_percent=int(disk_read_rate/soc_info_dict["disk_read_max"]*100)
+                    disk_read_chart.append(disk_read_percent)
 
-                    pcpu_bw_percent = int(
-                        (bandwidth_metrics["PCPU DCS RD"] + bandwidth_metrics[
-                            "PCPU DCS WR"]) / args.interval / max_cpu_bw * 100)
-                    pcpu_read_GB = bandwidth_metrics["PCPU DCS RD"] / \
-                                   args.interval
-                    pcpu_write_GB = bandwidth_metrics["PCPU DCS WR"] / \
-                                    args.interval
-                    pcpu_bw_gauge.title = "".join([
-                        "P-CPU: ",
-                        '{0:.1f}'.format(pcpu_read_GB + pcpu_write_GB),
-                        "GB/s"
+                    disk_write_rate=disk_metrics_dict["write_rate"]
+                    disk_write_chart.title = "".join([
+                        "Disk Write: ",
+                        '{0:.1f}'.format(disk_write_rate),
+                        "MB/s"
                     ])
-                    pcpu_bw_gauge.value = pcpu_bw_percent
+                    disk_write_percent=int(disk_write_rate/soc_info_dict["disk_write_max"]*100)
+                    disk_write_chart.append(disk_write_percent)
 
-                    gpu_bw_percent = int(
-                        (bandwidth_metrics["GFX DCS RD"] + bandwidth_metrics["GFX DCS WR"]) / max_gpu_bw * 100)
-                    gpu_read_GB = bandwidth_metrics["GFX DCS RD"]
-                    gpu_write_GB = bandwidth_metrics["GFX DCS WR"]
-                    gpu_bw_gauge.title = "".join([
-                        "GPU: ",
-                        '{0:.1f}'.format(gpu_read_GB + gpu_write_GB),
-                        "GB/s"
+                    network_download_rate=network_metrics_dict["download_rate"]
+                    network_download_chart.title = "".join([
+                        "Network Download: ",
+                        '{0:.1f}'.format(network_download_rate),
+                        "MB/s"
                     ])
-                    gpu_bw_gauge.value = gpu_bw_percent
+                    network_download_percent=int(network_download_rate/soc_info_dict["max_network_speed"]*100)
+                    network_download_chart.append(network_download_percent)
 
-                    media_bw_percent = int(
-                        bandwidth_metrics["MEDIA DCS"] / args.interval / max_media_bw * 100)
-                    media_bw_gauge.title = "".join([
-                        "Media: ",
-                        '{0:.1f}'.format(
-                            bandwidth_metrics["MEDIA DCS"] / args.interval),
-                        "GB/s"
+                    network_upload_rate=network_metrics_dict["upload_rate"]
+                    network_upload_chart.title = "".join([
+                        "Network Upload: ",
+                        '{0:.1f}'.format(network_upload_rate),
+                        "MB/s"
                     ])
-                    media_bw_gauge.value = media_bw_percent
+                    network_upload_percent=int(network_upload_rate/soc_info_dict["max_network_speed"]*100)
+                    network_upload_chart.append(network_upload_percent)
 
-                    total_bw_GB = (
-                                          bandwidth_metrics["DCS RD"] + bandwidth_metrics["DCS WR"]) / args.interval
-                    bw_gauges.title = "".join([
-                        "Memory Bandwidth: ",
-                        '{0:.2f}'.format(total_bw_GB),
-                        " GB/s (R:",
-                        '{0:.2f}'.format(
-                            bandwidth_metrics["DCS RD"] / args.interval),
-                        "/W:",
-                        '{0:.2f}'.format(
-                            bandwidth_metrics["DCS WR"] / args.interval),
-                        " GB/s)"
-                    ])
+                    bw_charts.title = "Bandwidths"
                     if args.show_cores:
                         bw_gauges_ext = memory_gauges.items[2]
                         bw_gauges_ext.title = "Memory Bandwidth:"
-                    """
+
 
                     package_power_W = cpu_metrics_dict["package_W"] / \
                                       args.interval

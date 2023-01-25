@@ -3,7 +3,7 @@ def parse_thermal_pressure(powermetrics_parse):
 
 
 def parse_bandwidth_metrics(powermetrics_parse):
-    bandwidth_metrics = powermetrics_parse["bandwidth_counters"]
+    # bandwidth_metrics = powermetrics_parse["bandwidth_counters"]
     bandwidth_metrics_dict = {}
     data_fields = ["PCPU0 DCS RD", "PCPU0 DCS WR",
                    "PCPU1 DCS RD", "PCPU1 DCS WR",
@@ -31,49 +31,47 @@ def parse_bandwidth_metrics(powermetrics_parse):
                    "DCS RD", "DCS WR"]
     for h in data_fields:
         bandwidth_metrics_dict[h] = 0
-    for l in bandwidth_metrics:
-        if l["name"] in data_fields:
-            bandwidth_metrics_dict[l["name"]] = l["value"]/(1e9)
-    bandwidth_metrics_dict["PCPU DCS RD"] = bandwidth_metrics_dict["PCPU DCS RD"] + \
-        bandwidth_metrics_dict["PCPU0 DCS RD"] + \
-        bandwidth_metrics_dict["PCPU1 DCS RD"] + \
-        bandwidth_metrics_dict["PCPU2 DCS RD"] + \
-        bandwidth_metrics_dict["PCPU3 DCS RD"]
-    bandwidth_metrics_dict["PCPU DCS WR"] = bandwidth_metrics_dict["PCPU DCS WR"] + \
-        bandwidth_metrics_dict["PCPU0 DCS WR"] + \
-        bandwidth_metrics_dict["PCPU1 DCS WR"] + \
-        bandwidth_metrics_dict["PCPU2 DCS WR"] + \
-        bandwidth_metrics_dict["PCPU3 DCS WR"]
-    bandwidth_metrics_dict["JPG DCS RD"] = bandwidth_metrics_dict["JPG DCS RD"] + \
-        bandwidth_metrics_dict["JPG0 DCS RD"] + \
-        bandwidth_metrics_dict["JPG1 DCS RD"] + \
-        bandwidth_metrics_dict["JPG2 DCS RD"] + \
-        bandwidth_metrics_dict["JPG3 DCS RD"]
-    bandwidth_metrics_dict["JPG DCS WR"] = bandwidth_metrics_dict["JPG DCS WR"] + \
-        bandwidth_metrics_dict["JPG0 DCS WR"] + \
-        bandwidth_metrics_dict["JPG1 DCS WR"] + \
-        bandwidth_metrics_dict["JPG2 DCS WR"] + \
-        bandwidth_metrics_dict["JPG3 DCS WR"]
-    bandwidth_metrics_dict["VENC DCS RD"] = bandwidth_metrics_dict["VENC DCS RD"] + \
-        bandwidth_metrics_dict["VENC0 DCS RD"] + \
-        bandwidth_metrics_dict["VENC1 DCS RD"] + \
-        bandwidth_metrics_dict["VENC2 DCS RD"] + \
-        bandwidth_metrics_dict["VENC3 DCS RD"]
-    bandwidth_metrics_dict["VENC DCS WR"] = bandwidth_metrics_dict["VENC DCS WR"] + \
-        bandwidth_metrics_dict["VENC0 DCS WR"] + \
-        bandwidth_metrics_dict["VENC1 DCS WR"] + \
-        bandwidth_metrics_dict["VENC2 DCS WR"] + \
-        bandwidth_metrics_dict["VENC3 DCS WR"]
-    bandwidth_metrics_dict["MEDIA DCS"] = sum([
-        bandwidth_metrics_dict["ISP DCS RD"], bandwidth_metrics_dict["ISP DCS WR"],
-        bandwidth_metrics_dict["STRM CODEC DCS RD"], bandwidth_metrics_dict["STRM CODEC DCS WR"],
-        bandwidth_metrics_dict["PRORES DCS RD"], bandwidth_metrics_dict["PRORES DCS WR"],
-        bandwidth_metrics_dict["VDEC DCS RD"], bandwidth_metrics_dict["VDEC DCS WR"],
-        bandwidth_metrics_dict["VENC DCS RD"], bandwidth_metrics_dict["VENC DCS WR"],
-        bandwidth_metrics_dict["JPG DCS RD"], bandwidth_metrics_dict["JPG DCS WR"],
-    ])
+    # for l in bandwidth_metrics:
+    #     if l["name"] in data_fields:
+    #         bandwidth_metrics_dict[l["name"]] = l["value"]/(1e9)
+    bandwidth_metrics_dict["PCPU DCS RD"] = 0
+    bandwidth_metrics_dict["PCPU DCS WR"] = 0
+    bandwidth_metrics_dict["JPG DCS RD"] = 0
+    bandwidth_metrics_dict["JPG DCS WR"] = 0
+    bandwidth_metrics_dict["VENC DCS RD"] = 0
+    bandwidth_metrics_dict["VENC DCS WR"] = 0
+    bandwidth_metrics_dict["MEDIA DCS"] = 0
     return bandwidth_metrics_dict
 
+def parse_disk_metrics(powermetrics_parse):
+    """Parse disk metrics, returns r/w rate in MByte/s
+
+    Args:
+        powermetrics_parse (dict): The result of plistlib loaded data
+
+    Returns:
+        dict: A dictionary which has write_rate and read_rate key, in MByte/s
+    """
+    disk_metrics=powermetrics_parse["disk"]
+    return {
+        "write_rate":disk_metrics["wbytes_per_s"]/(1024*1024),
+        "read_rate":disk_metrics["rbytes_per_s"]/(1024*1024)
+    }
+
+def parse_network_metrics(powermetrics_parse):
+    """Parse network metrics, returns upload/download rate in MByte/s
+
+    Args:
+        powermetrics_parse (dict): The result of plistlib loaded data
+
+    Returns:
+        dict: A dictionary which has upload_rate and download_rate key, in MByte/s
+    """
+    network_metrics=powermetrics_parse["network"]
+    return {
+        "upload_rate":network_metrics["obyte_rate"]/(1024*1024),
+        "download_rate":network_metrics["ibyte_rate"]/(1024*1024)
+    }
 
 def parse_cpu_metrics(powermetrics_parse):
     e_core = []
@@ -124,7 +122,7 @@ def parse_cpu_metrics(powermetrics_parse):
                 cpu_metric_dict["P0-Cluster_freq_Mhz"], cpu_metric_dict["P1-Cluster_freq_Mhz"])
     # power
     cpu_metric_dict["ane_W"] = cpu_metrics["ane_energy"]/1000
-    #cpu_metric_dict["dram_W"] = cpu_metrics["dram_energy"]/1000
+    cpu_metric_dict["dram_W"] = 0
     cpu_metric_dict["cpu_W"] = cpu_metrics["cpu_energy"]/1000
     cpu_metric_dict["gpu_W"] = cpu_metrics["gpu_energy"]/1000
     cpu_metric_dict["package_W"] = cpu_metrics["combined_power"]/1000
