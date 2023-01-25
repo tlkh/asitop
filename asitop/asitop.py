@@ -80,6 +80,7 @@ def main():
             network_download_chart,
             network_upload_chart,
         )]
+
     memory_gauges = VSplit(
         ram_gauge,
         *bw_charts,
@@ -130,9 +131,9 @@ def main():
     cpu_max_power = soc_info_dict["cpu_max_power"]
     gpu_max_power = soc_info_dict["gpu_max_power"]
     ane_max_power = 8.0
-    max_cpu_bw = soc_info_dict["cpu_max_bw"]
+    """max_cpu_bw = soc_info_dict["cpu_max_bw"]
     max_gpu_bw = soc_info_dict["gpu_max_bw"]
-    max_media_bw = 7.0
+    max_media_bw = 7.0"""
 
     cpu_peak_power = 0
     gpu_peak_power = 0
@@ -316,6 +317,7 @@ def main():
                         bw_gauges_ext = memory_gauges.items[2]
                         bw_gauges_ext.title = "Memory Bandwidth:"
 
+
                     package_power_W = cpu_metrics_dict["package_W"] / \
                                       args.interval
                     if package_power_W > package_peak_power:
@@ -323,7 +325,7 @@ def main():
                     avg_package_power_list.append(package_power_W)
                     avg_package_power = get_avg(avg_package_power_list)
                     power_charts.title = "".join([
-                        "Package Power: ",
+                        "CPU+GPU+ANE Power: ",
                         '{0:.2f}'.format(package_power_W),
                         "W (avg: ",
                         '{0:.2f}'.format(avg_package_power),

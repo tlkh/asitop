@@ -20,10 +20,9 @@ A Python-based `nvtop`-inspired command line tool for Apple Silicon (aka M1) Mac
   * ANE utilization (measured by power)
 * Memory info:
   * RAM and swap, size and usage
-  * Memory bandwidth (CPU/GPU/total)
-  * Media engine bandwidth usage
+  * (Apple removed memory bandwidth from `powermetrics`)
 * Power info:
-  * Package power, CPU power, GPU power
+  * CPU power, GPU power (Apple removed package power from `powermetrics`)
   * Chart for CPU/GPU power
   * Peak power, rolling average display
 
