@@ -127,7 +127,12 @@ def parse_cpu_metrics(powermetrics_parse):
     #cpu_metric_dict["dram_W"] = cpu_metrics["dram_energy"]/1000
     cpu_metric_dict["cpu_W"] = cpu_metrics["cpu_energy"]/1000
     cpu_metric_dict["gpu_W"] = cpu_metrics["gpu_energy"]/1000
-    cpu_metric_dict["package_W"] = cpu_metrics["combined_power"]/1000
+    if "combined_power" in cpu_metrics.keys():
+        # macOS 13 Ventura
+        cpu_metric_dict["package_W"] = cpu_metrics["combined_power"]/1000
+    else:
+        # macOS 12 Monterey
+        cpu_metric_dict["package_W"] = cpu_metrics["package_energy"]/1000
     return cpu_metric_dict
 
 
