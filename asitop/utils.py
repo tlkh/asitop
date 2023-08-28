@@ -80,8 +80,6 @@ def run_powermetrics_process(nice=10, interval=1000):
         str(nice),
         "powermetrics",
         "--samplers cpu_power,gpu_power,thermal",
-        output_file_flag,
-        "/tmp/asitop_powermetrics"+timecode,
         "-f plist",
         "-i",
         str(interval)
