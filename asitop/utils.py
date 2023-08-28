@@ -16,10 +16,21 @@ def parse_powermetrics(queue):
         thermal_pressure = parse_thermal_pressure(powermetrics_parse)
         cpu_metrics_dict = parse_cpu_metrics(powermetrics_parse)
         gpu_metrics_dict = parse_gpu_metrics(powermetrics_parse)
-        bandwidth_metrics = parse_bandwidth_metrics(powermetrics_parse)
+        #bandwidth_metrics = parse_bandwidth_metrics(powermetrics_parse)
+        bandwidth_metrics = None
         timestamp = powermetrics_parse["timestamp"]
         return cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp
     except Exception as e:
+        if data:
+            if len(data) > 1:
+                powermetrics_parse = plistlib.loads(data[-2])
+                thermal_pressure = parse_thermal_pressure(powermetrics_parse)
+                cpu_metrics_dict = parse_cpu_metrics(powermetrics_parse)
+                gpu_metrics_dict = parse_gpu_metrics(powermetrics_parse)
+                #bandwidth_metrics = parse_bandwidth_metrics(powermetrics_parse)
+                bandwidth_metrics = None
+                timestamp = powermetrics_parse["timestamp"]
+                return cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp
         return False
 
 
@@ -68,7 +79,9 @@ def run_powermetrics_process(nice=10, interval=1000):
         "sudo nice -n",
         str(nice),
         "powermetrics",
-        "--samplers cpu_power,gpu_power,thermal,bandwidth",
+        "--samplers cpu_power,gpu_power,thermal",
+        output_file_flag,
+        "/tmp/asitop_powermetrics"+timecode,
         "-f plist",
         "-i",
         str(interval)

@@ -65,6 +65,7 @@ def main():
     )
 
     ram_gauge = HGauge(title="RAM Usage", val=0, color=args.color)
+    """
     ecpu_bw_gauge = HGauge(title="E-CPU B/W", val=50, color=args.color)
     pcpu_bw_gauge = HGauge(title="P-CPU B/W", val=50, color=args.color)
     gpu_bw_gauge = HGauge(title="GPU B/W", val=50, color=args.color)
@@ -83,9 +84,10 @@ def main():
             gpu_bw_gauge,
             media_bw_gauge,
         )]
+    """
     memory_gauges = VSplit(
         ram_gauge,
-        *bw_gauges,
+        #*bw_gauges,
         border_color=args.color,
         title="Memory"
     )
@@ -117,7 +119,7 @@ def main():
     )
 
     usage_gauges = ui.items[0]
-    bw_gauges = memory_gauges.items[1]
+    #bw_gauges = memory_gauges.items[1]
 
     cpu_title = "".join([
         soc_info_dict["name"],
@@ -133,9 +135,9 @@ def main():
     cpu_max_power = soc_info_dict["cpu_max_power"]
     gpu_max_power = soc_info_dict["gpu_max_power"]
     ane_max_power = 8.0
-    max_cpu_bw = soc_info_dict["cpu_max_bw"]
+    """max_cpu_bw = soc_info_dict["cpu_max_bw"]
     max_gpu_bw = soc_info_dict["gpu_max_bw"]
-    max_media_bw = 7.0
+    max_media_bw = 7.0"""
 
     cpu_peak_power = 0
     gpu_peak_power = 0
@@ -267,6 +269,8 @@ def main():
                         ])
                     ram_gauge.value = ram_metrics_dict["free_percent"]
 
+                    """
+
                     ecpu_bw_percent = int(
                         (bandwidth_metrics["ECPU DCS RD"] + bandwidth_metrics[
                             "ECPU DCS WR"]) / args.interval / max_cpu_bw * 100)
@@ -332,6 +336,7 @@ def main():
                     if args.show_cores:
                         bw_gauges_ext = memory_gauges.items[2]
                         bw_gauges_ext.title = "Memory Bandwidth:"
+                    """
 
                     package_power_W = cpu_metrics_dict["package_W"] / \
                                       args.interval
@@ -340,7 +345,7 @@ def main():
                     avg_package_power_list.append(package_power_W)
                     avg_package_power = get_avg(avg_package_power_list)
                     power_charts.title = "".join([
-                        "Package Power: ",
+                        "CPU+GPU+ANE Power: ",
                         '{0:.2f}'.format(package_power_W),
                         "W (avg: ",
                         '{0:.2f}'.format(avg_package_power),
