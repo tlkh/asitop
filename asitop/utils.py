@@ -1,19 +1,18 @@
 import os
-import glob
 import subprocess
+from queue import LifoQueue
 from subprocess import PIPE
+from threading import Thread
 import psutil
 from .parsers import *
 import plistlib
 
 
-def parse_powermetrics(path='/tmp/asitop_powermetrics', timecode="0"):
-    data = None
+def parse_powermetrics(queue):
     try:
-        with open(path+timecode, 'rb') as fp:
-            data = fp.read()
-        data = data.split(b'\x00')
-        powermetrics_parse = plistlib.loads(data[-1])
+        # a Last in First out queue
+        data = queue.get()
+        powermetrics_parse = plistlib.loads(data)
         thermal_pressure = parse_thermal_pressure(powermetrics_parse)
         cpu_metrics_dict = parse_cpu_metrics(powermetrics_parse)
         gpu_metrics_dict = parse_gpu_metrics(powermetrics_parse)
@@ -43,20 +42,44 @@ def clear_console():
 def convert_to_GB(value):
     return round(value/1024/1024/1024, 1)
 
+def enqueue_powermetrics(buffered_reader, queue_in):
+    """
+    a helper to convert the output of `powermetrics`
+      into list of plist strings.
 
-def run_powermetrics_process(timecode, nice=10, interval=1000):
+    buffered_reader: stdout of the `powermetrics` process
+    queue_in: a LIFO queue, will also be provided to the parser
+    """
+    buffer = b''
+    for line in buffered_reader:
+        # magic string
+        if line.startswith(b"\x00"):
+            queue_in.put(buffer)
+            buffer = line[1:]
+        else:
+            buffer += line
+
+def build_enqueue_thread(powermetrics_stdout):
+    """
+    build a thread to run enqueue_powermetrics()
+    returns:
+        queue: the LIFO queue, containing plist strings
+        equeue_thread: the identifier of the thread
+    """
+    queue = LifoQueue()
+    enqueue_thread = Thread(target=enqueue_powermetrics,
+                            args=(powermetrics_stdout, queue))
+    enqueue_thread.start()
+    return queue, enqueue_thread
+
+def run_powermetrics_process(nice=10, interval=1000):
     #ver, *_ = platform.mac_ver()
     #major_ver = int(ver.split(".")[0])
-    for tmpf in glob.glob("/tmp/asitop_powermetrics*"):
-        os.remove(tmpf)
-    output_file_flag = "-o"
     command = " ".join([
         "sudo nice -n",
         str(nice),
         "powermetrics",
         "--samplers cpu_power,gpu_power,thermal",
-        output_file_flag,
-        "/tmp/asitop_powermetrics"+timecode,
         "-f plist",
         "-i",
         str(interval)

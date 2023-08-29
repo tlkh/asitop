@@ -2,7 +2,12 @@ import time
 import argparse
 from collections import deque
 from dashing import VSplit, HSplit, HGauge, HChart, VGauge
-from .utils import *
+from .utils import (build_enqueue_thread,
+                    clear_console,
+                    get_ram_metrics_dict,
+                    get_soc_info,
+                    parse_powermetrics,
+                    run_powermetrics_process)
 
 parser = argparse.ArgumentParser(
     description='asitop: Performance monitoring CLI tool for Apple Silicon')
@@ -14,8 +19,6 @@ parser.add_argument('--avg', type=int, default=30,
                     help='Interval for averaged values (seconds)')
 parser.add_argument('--show_cores', type=bool, default=False,
                     help='Choose show cores mode')
-parser.add_argument('--max_count', type=int, default=0,
-                    help='Max show count to restart powermetrics')
 args = parser.parse_args()
 
 
@@ -142,18 +145,16 @@ def main():
 
     print("\n[2/3] Starting powermetrics process\n")
 
-    timecode = str(int(time.time()))
-
-    powermetrics_process = run_powermetrics_process(timecode,
-                                                    interval=args.interval * 1000)
+    powermetrics_process = run_powermetrics_process(interval=args.interval * 1000)
+    queue, _thread = build_enqueue_thread(powermetrics_process.stdout)
 
     print("\n[3/3] Waiting for first reading...\n")
 
     def get_reading(wait=0.1):
-        ready = parse_powermetrics(timecode=timecode)
+        ready = parse_powermetrics(queue)
         while not ready:
             time.sleep(wait)
-            ready = parse_powermetrics(timecode=timecode)
+            ready = parse_powermetrics(queue)
         return ready
 
     ready = get_reading()
@@ -169,18 +170,9 @@ def main():
 
     clear_console()
 
-    count=0
     try:
         while True:
-            if args.max_count > 0:
-                if count >= args.max_count:
-                    count = 0
-                    powermetrics_process.terminate()
-                    timecode = str(int(time.time()))
-                    powermetrics_process = run_powermetrics_process(
-                        timecode, interval=args.interval * 1000)
-                count += 1
-            ready = parse_powermetrics(timecode=timecode)
+            ready = parse_powermetrics(queue)
             if ready:
                 cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp = ready
 
@@ -401,7 +393,6 @@ def main():
 
                     ui.display()
 
-            time.sleep(args.interval)
 
     except KeyboardInterrupt:
         print("Stopping...")
