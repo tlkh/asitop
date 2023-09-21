@@ -1,3 +1,5 @@
+import math
+
 def parse_thermal_pressure(powermetrics_parse):
     return powermetrics_parse["thermal_pressure"]
 
@@ -84,14 +86,22 @@ def parse_cpu_metrics(powermetrics_parse):
     cpu_clusters = cpu_metrics["clusters"]
     for cluster in cpu_clusters:
         name = cluster["name"]
-        cpu_metric_dict[name+"_freq_Mhz"] = int(cluster["freq_hz"]/(1e6))
-        cpu_metric_dict[name+"_active"] = int((1 - cluster["idle_ratio"])*100)
+        cluster_freq_hz = cluster["freq_hz"]
+        cluster_idle_ratio = cluster["idle_ratio"]
+        if math.isnan(cluster_idle_ratio):
+            cluster_idle_ratio = 0
+        cpu_metric_dict[name+"_freq_Mhz"] = int(cluster_freq_hz/(1e6))
+        cpu_metric_dict[name+"_active"] = int((1 - cluster_idle_ratio)*100)
         for cpu in cluster["cpus"]:
             name = 'E-Cluster' if name[0] == 'E' else 'P-Cluster'
             core = e_core if name[0] == 'E' else p_core
             core.append(cpu["cpu"])
-            cpu_metric_dict[name + str(cpu["cpu"]) + "_freq_Mhz"] = int(cpu["freq_hz"] / (1e6))
-            cpu_metric_dict[name + str(cpu["cpu"]) + "_active"] = int((1 - cpu["idle_ratio"]) * 100)
+            cpu_freq_hz = cpu["freq_hz"]
+            cpu_idle_ratio = cpu["idle_ratio"]
+            if math.isnan(cpu_idle_ratio):
+                cpu_idle_ratio = 0
+            cpu_metric_dict[name + str(cpu["cpu"]) + "_freq_Mhz"] = int(cpu_freq_hz / (1e6))
+            cpu_metric_dict[name + str(cpu["cpu"]) + "_active"] = int((1 - cpu_idle_ratio) * 100)
     cpu_metric_dict["e_core"] = e_core
     cpu_metric_dict["p_core"] = p_core
     if "E-Cluster_active" not in cpu_metric_dict:
