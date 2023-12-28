@@ -12,7 +12,7 @@ parser.add_argument('--color', type=int, default=2,
                     help='Choose display color (0~8)')
 parser.add_argument('--avg', type=int, default=30,
                     help='Interval for averaged values (seconds)')
-parser.add_argument('--show_cores', type=bool, default=False,
+parser.add_argument('--show_cores', type=bool, default=False, action='store_true',
                     help='Choose show cores mode')
 parser.add_argument('--max_count', type=int, default=0,
                     help='Max show count to restart powermetrics')
