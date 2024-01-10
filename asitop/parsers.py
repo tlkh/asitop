@@ -94,7 +94,7 @@ def parse_cpu_metrics(powermetrics_parse):
             core.append(cpu["cpu"])
             cpu_metric_dict[name + str(cpu["cpu"]) + "_freq_Mhz"] = int(cpu["freq_hz"] / (1e6))
             cpu_metric_dict[name + str(cpu["cpu"]) + "_active"] = int((1 - cpu["idle_ratio"]) * 100)
-            total_idle_ratio += cpu["idle_ratio"]
+            total_idle_ratio += cluster["down_ratio"] + (1 - cluster["down_ratio"]) * (cpu["idle_ratio"] + cpu["down_ratio"])
             core_count += 1
         cpu_metric_dict[name+"_active"] = int((1 - total_idle_ratio/core_count)*100)
     cpu_metric_dict["e_core"] = e_core
