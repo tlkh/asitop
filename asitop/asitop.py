@@ -37,15 +37,21 @@ def main():
     e_core_count = soc_info_dict["e_core_count"]
     e_core_gauges = [VGauge(val=0, color=args.color, border_color=args.color) for _ in range(e_core_count)]
     p_core_count = soc_info_dict["p_core_count"]
-    p_core_gauges = [VGauge(val=0, color=args.color, border_color=args.color) for _ in range(min(p_core_count, 8))]
-    p_core_split = [HSplit(
-        *p_core_gauges,
-    )]
     if p_core_count > 8:
-        p_core_gauges_ext = [VGauge(val=0, color=args.color, border_color=args.color) for _ in range(p_core_count - 8)]
+        p_core_gauges = [VGauge(val=0, color=args.color, border_color=args.color) for _ in range(min(p_core_count, int(p_core_count/2)))]
+        p_core_split = [HSplit(
+            *p_core_gauges,
+        )]
+        p_core_gauges_ext = [VGauge(val=0, color=args.color, border_color=args.color) for _ in range(p_core_count - int(p_core_count/2))]
         p_core_split.append(HSplit(
             *p_core_gauges_ext,
         ))
+    else:
+        p_core_gauges = [VGauge(val=0, color=args.color, border_color=args.color) for _ in range(min(p_core_count, 8))]
+        p_core_split = [HSplit(
+            *p_core_gauges,
+        )]
+
     processor_gauges = [cpu1_gauge,
                         HSplit(*e_core_gauges),
                         cpu2_gauge,
@@ -194,18 +200,18 @@ def main():
 
                     cpu1_gauge.title = "".join([
                         "E-CPU Usage: ",
-                        str(cpu_metrics_dict["E-Cluster_active"]),
+                        '%0.2f' % cpu_metrics_dict["E-Cluster_active"],
                         "% @ ",
-                        str(cpu_metrics_dict["E-Cluster_freq_Mhz"]),
+                        '%d' % cpu_metrics_dict["E-Cluster_freq_Mhz"],
                         " MHz"
                     ])
                     cpu1_gauge.value = cpu_metrics_dict["E-Cluster_active"]
 
                     cpu2_gauge.title = "".join([
                         "P-CPU Usage: ",
-                        str(cpu_metrics_dict["P-Cluster_active"]),
+                        '%0.2f' % cpu_metrics_dict["P-Cluster_active"],
                         "% @ ",
-                        str(cpu_metrics_dict["P-Cluster_freq_Mhz"]),
+                        '%d' % cpu_metrics_dict["P-Cluster_freq_Mhz"],
                         " MHz"
                     ])
                     cpu2_gauge.value = cpu_metrics_dict["P-Cluster_active"]
@@ -215,20 +221,20 @@ def main():
                         for i in cpu_metrics_dict["e_core"]:
                             e_core_gauges[core_count % 4].title = "".join([
                                 "Core-" + str(i + 1) + " ",
-                                str(cpu_metrics_dict["E-Cluster" + str(i) + "_active"]),
+                                '%0.2f' % cpu_metrics_dict["E-Cluster" + str(i) + "_active"],
                                 "%",
                             ])
                             e_core_gauges[core_count % 4].value = cpu_metrics_dict["E-Cluster" + str(i) + "_active"]
                             core_count += 1
                         core_count = 0
                         for i in cpu_metrics_dict["p_core"]:
-                            core_gauges = p_core_gauges if core_count < 8 else p_core_gauges_ext
-                            core_gauges[core_count % 8].title = "".join([
+                            core_gauges = p_core_gauges if core_count < int(p_core_count/2) else p_core_gauges_ext
+                            core_gauges[core_count % int(p_core_count/2)].title = "".join([
                                 ("Core-" if p_core_count < 6 else 'C-') + str(i + 1) + " ",
-                                str(cpu_metrics_dict["P-Cluster" + str(i) + "_active"]),
+                                '%0.2f' % cpu_metrics_dict["P-Cluster" + str(i) + "_active"],
                                 "%",
                             ])
-                            core_gauges[core_count % 8].value = cpu_metrics_dict["P-Cluster" + str(i) + "_active"]
+                            core_gauges[core_count % int(p_core_count/2)].value = cpu_metrics_dict["P-Cluster" + str(i) + "_active"]
                             core_count += 1
 
                     gpu_gauge.title = "".join([
