@@ -3,36 +3,82 @@ import glob
 import subprocess
 from subprocess import PIPE
 import psutil
-from .parsers import *
+from .parsers import (
+    parse_thermal_pressure,
+    parse_cpu_metrics,
+    parse_gpu_metrics,
+)
 import plistlib
 
 
 def parse_powermetrics(path='/tmp/asitop_powermetrics', timecode="0"):
-    data = None
+    """Parse the most recent plist entry from the powermetrics output file.
+
+    powermetrics appends plist entries separated by null bytes (\\x00) to a
+    continuously growing file. The previous implementation read the *entire*
+    file on every call (once per second by default), then split all contents
+    into memory. After multi-day runs the file grows into gigabytes, causing
+    asitop to consume 6 GB+ RSS (observed on an M4 Mac mini after ~3 days).
+
+    This implementation seeks to the end of the file and reads *backwards* in
+    64 KB chunks until it has found at least two null-byte-separated segments.
+    Only those final segments are loaded into memory, so memory usage stays
+    constant regardless of how long asitop has been running.
+    """
+    CHUNK_SIZE = 65536  # 64 KB — larger than any single powermetrics plist entry
+
     try:
-        with open(path+timecode, 'rb') as fp:
-            data = fp.read()
-        data = data.split(b'\x00')
-        powermetrics_parse = plistlib.loads(data[-1])
-        thermal_pressure = parse_thermal_pressure(powermetrics_parse)
-        cpu_metrics_dict = parse_cpu_metrics(powermetrics_parse)
-        gpu_metrics_dict = parse_gpu_metrics(powermetrics_parse)
-        #bandwidth_metrics = parse_bandwidth_metrics(powermetrics_parse)
-        bandwidth_metrics = None
-        timestamp = powermetrics_parse["timestamp"]
-        return cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp
-    except Exception as e:
-        if data:
-            if len(data) > 1:
-                powermetrics_parse = plistlib.loads(data[-2])
-                thermal_pressure = parse_thermal_pressure(powermetrics_parse)
-                cpu_metrics_dict = parse_cpu_metrics(powermetrics_parse)
-                gpu_metrics_dict = parse_gpu_metrics(powermetrics_parse)
-                #bandwidth_metrics = parse_bandwidth_metrics(powermetrics_parse)
-                bandwidth_metrics = None
-                timestamp = powermetrics_parse["timestamp"]
-                return cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp
+        with open(path + timecode, 'rb') as fp:
+            fp.seek(0, 2)
+            file_size = fp.tell()
+
+            if file_size == 0:
+                return False
+
+            # Read backwards in chunks until we have ≥2 null-byte separators.
+            # With ≥2 separators we get ≥3 segments, guaranteeing both a
+            # primary candidate (segments[-1]) and a fallback (segments[-2]).
+            tail = b''
+            pos = file_size
+
+            while pos > 0:
+                read_size = min(CHUNK_SIZE, pos)
+                pos -= read_size
+                fp.seek(pos)
+                tail = fp.read(read_size) + tail
+                if tail.count(b'\x00') >= 2:
+                    break
+
+        segments = tail.split(b'\x00')
+
+    except Exception:
         return False
+
+    def _parse_segment(segment):
+        """Parse a single plist segment, returning the metrics tuple or None."""
+        segment = segment.strip(b'\x00')
+        if not segment:
+            return None
+        try:
+            powermetrics_parse = plistlib.loads(segment)
+            thermal_pressure = parse_thermal_pressure(powermetrics_parse)
+            cpu_metrics_dict = parse_cpu_metrics(powermetrics_parse)
+            gpu_metrics_dict = parse_gpu_metrics(powermetrics_parse)
+            # bandwidth_metrics = parse_bandwidth_metrics(powermetrics_parse)
+            bandwidth_metrics = None
+            timestamp = powermetrics_parse["timestamp"]
+            return cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp
+        except Exception:
+            return None
+
+    # Try segments from most-recent to oldest; the very last segment may be
+    # a partial write in progress, so fall back to earlier complete entries.
+    for segment in reversed(segments):
+        result = _parse_segment(segment)
+        if result is not None:
+            return result
+
+    return False
 
 
 def clear_console():
