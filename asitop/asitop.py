@@ -35,10 +35,6 @@ def clip_text(text, width):
     return text[:width - 3] + "..."
 
 
-def compact_title(*parts):
-    return " ".join(str(part) for part in parts)
-
-
 def sanitize_terminal_kind(kind):
     aliases = {
         "xterm-ghossty": "xterm-ghostty",
@@ -185,10 +181,16 @@ def main(argv=None):
 
     half_width = max(12, terminal_width // 2 - 8)
     full_width = max(20, terminal_width - 6)
-    cpu_title = compact_title(
+    cpu_title = "".join([
         soc_info_dict["name"],
-        f'{soc_info_dict["e_core_count"]}E+{soc_info_dict["p_core_count"]}P+{soc_info_dict["gpu_core_count"]}G'
-    )
+        " (cores: ",
+        str(soc_info_dict["e_core_count"]),
+        "E+",
+        str(soc_info_dict["p_core_count"]),
+        "P+",
+        str(soc_info_dict["gpu_core_count"]),
+        "GPU)"
+    ])
     usage_gauges.title = clip_text(cpu_title, full_width)
     cpu_max_power = soc_info_dict["cpu_max_power"]
     gpu_max_power = soc_info_dict["gpu_max_power"]
@@ -253,70 +255,89 @@ def main(argv=None):
                     else:
                         thermal_throttle = "yes"
 
-                    cpu1_gauge.title = clip_text(compact_title(
-                        "E",
-                        f'{cpu_metrics_dict["E-Cluster_active"]}%',
-                        f'{cpu_metrics_dict["E-Cluster_freq_Mhz"]}MHz'
-                    ), half_width)
+                    cpu1_gauge.title = clip_text("".join([
+                        "E-CPU Usage: ",
+                        str(cpu_metrics_dict["E-Cluster_active"]),
+                        "% @ ",
+                        str(cpu_metrics_dict["E-Cluster_freq_Mhz"]),
+                        " MHz"
+                    ]), half_width)
                     cpu1_gauge.value = cpu_metrics_dict["E-Cluster_active"]
 
-                    cpu2_gauge.title = clip_text(compact_title(
-                        "P",
-                        f'{cpu_metrics_dict["P-Cluster_active"]}%',
-                        f'{cpu_metrics_dict["P-Cluster_freq_Mhz"]}MHz'
-                    ), half_width)
+                    cpu2_gauge.title = clip_text("".join([
+                        "P-CPU Usage: ",
+                        str(cpu_metrics_dict["P-Cluster_active"]),
+                        "% @ ",
+                        str(cpu_metrics_dict["P-Cluster_freq_Mhz"]),
+                        " MHz"
+                    ]), half_width)
                     cpu2_gauge.value = cpu_metrics_dict["P-Cluster_active"]
 
                     if show_cores:
                         core_count = 0
                         for i in cpu_metrics_dict["e_core"]:
-                            e_core_gauges[core_count % 4].title = compact_title(
-                                "C" + str(i + 1),
-                                str(cpu_metrics_dict["E-Cluster" + str(i) + "_active"]) + "%",
-                            )
+                            e_core_gauges[core_count % 4].title = "".join([
+                                "Core-" + str(i + 1) + " ",
+                                str(cpu_metrics_dict["E-Cluster" + str(i) + "_active"]),
+                                "%",
+                            ])
                             e_core_gauges[core_count % 4].value = cpu_metrics_dict["E-Cluster" + str(i) + "_active"]
                             core_count += 1
                         core_count = 0
                         for i in cpu_metrics_dict["p_core"]:
                             core_gauges = p_core_gauges if core_count < 8 else p_core_gauges_ext
-                            core_gauges[core_count % 8].title = compact_title(
-                                "C" + str(i + 1),
-                                str(cpu_metrics_dict["P-Cluster" + str(i) + "_active"]) + "%",
-                            )
+                            core_gauges[core_count % 8].title = "".join([
+                                ("Core-" if p_core_count < 6 else 'C-') + str(i + 1) + " ",
+                                str(cpu_metrics_dict["P-Cluster" + str(i) + "_active"]),
+                                "%",
+                            ])
                             core_gauges[core_count % 8].value = cpu_metrics_dict["P-Cluster" + str(i) + "_active"]
                             core_count += 1
 
-                    gpu_gauge.title = clip_text(compact_title(
-                        "GPU",
-                        f'{gpu_metrics_dict["active"]}%',
-                        f'{gpu_metrics_dict["freq_MHz"]}MHz'
-                    ), half_width)
+                    gpu_gauge.title = clip_text("".join([
+                        "GPU Usage: ",
+                        str(gpu_metrics_dict["active"]),
+                        "% @ ",
+                        str(gpu_metrics_dict["freq_MHz"]),
+                        " MHz"
+                    ]), half_width)
                     gpu_gauge.value = gpu_metrics_dict["active"]
 
                     ane_util_percent = int(
                         cpu_metrics_dict["ane_W"] / args.interval / ane_max_power * 100)
-                    ane_gauge.title = clip_text(compact_title(
-                        "ANE",
-                        f"{ane_util_percent}%",
-                        f'{cpu_metrics_dict["ane_W"] / args.interval:.1f}W'
-                    ), half_width)
+                    ane_gauge.title = clip_text("".join([
+                        "ANE Usage: ",
+                        str(ane_util_percent),
+                        "% @ ",
+                        '{0:.1f}'.format(
+                            cpu_metrics_dict["ane_W"] / args.interval),
+                        " W"
+                    ]), half_width)
                     ane_gauge.value = ane_util_percent
 
                     ram_metrics_dict = get_ram_metrics_dict()
 
                     if ram_metrics_dict["swap_total_GB"] < 0.1:
-                        ram_gauge.title = clip_text(compact_title(
-                            "RAM",
-                            f'{ram_metrics_dict["used_GB"]}/{ram_metrics_dict["total_GB"]}GB',
-                            "swap-off"
-                        ), full_width)
+                        ram_gauge.title = clip_text("".join([
+                            "RAM Usage: ",
+                            str(ram_metrics_dict["used_GB"]),
+                            "/",
+                            str(ram_metrics_dict["total_GB"]),
+                            "GB - swap inactive"
+                        ]), full_width)
                     else:
-                        ram_gauge.title = clip_text(compact_title(
-                            "RAM",
-                            f'{ram_metrics_dict["used_GB"]}/{ram_metrics_dict["total_GB"]}GB',
-                            "swap",
-                            f'{ram_metrics_dict["swap_used_GB"]}/{ram_metrics_dict["swap_total_GB"]}GB'
-                        ), full_width)
+                        ram_gauge.title = clip_text("".join([
+                            "RAM Usage: ",
+                            str(ram_metrics_dict["used_GB"]),
+                            "/",
+                            str(ram_metrics_dict["total_GB"]),
+                            "GB",
+                            " - swap:",
+                            str(ram_metrics_dict["swap_used_GB"]),
+                            "/",
+                            str(ram_metrics_dict["swap_total_GB"]),
+                            "GB"
+                        ]), full_width)
                     ram_gauge.value = ram_metrics_dict["free_percent"]
 
                     """
@@ -394,16 +415,16 @@ def main(argv=None):
                         package_peak_power = package_power_W
                     avg_package_power_list.append(package_power_W)
                     avg_package_power = get_avg(avg_package_power_list)
-                    power_charts.title = clip_text(compact_title(
-                        "Pkg",
-                        f"{package_power_W:.1f}W",
-                        "avg",
-                        f"{avg_package_power:.1f}W",
-                        "pk",
-                        f"{package_peak_power:.1f}W",
-                        "thr",
+                    power_charts.title = clip_text("".join([
+                        "CPU+GPU+ANE Power: ",
+                        '{0:.2f}'.format(package_power_W),
+                        "W (avg: ",
+                        '{0:.2f}'.format(avg_package_power),
+                        "W peak: ",
+                        '{0:.2f}'.format(package_peak_power),
+                        "W) throttle: ",
                         thermal_throttle,
-                    ), full_width)
+                    ]), full_width)
 
                     cpu_power_percent = int(
                         cpu_metrics_dict["cpu_W"] / args.interval / cpu_max_power * 100)
@@ -412,14 +433,15 @@ def main(argv=None):
                         cpu_peak_power = cpu_power_W
                     avg_cpu_power_list.append(cpu_power_W)
                     avg_cpu_power = get_avg(avg_cpu_power_list)
-                    cpu_power_chart.title = clip_text(compact_title(
-                        "CPU",
-                        f"{cpu_power_W:.1f}W",
-                        "avg",
-                        f"{avg_cpu_power:.1f}W",
-                        "pk",
-                        f"{cpu_peak_power:.1f}W"
-                    ), half_width)
+                    cpu_power_chart.title = clip_text("".join([
+                        "CPU: ",
+                        '{0:.2f}'.format(cpu_power_W),
+                        "W (avg: ",
+                        '{0:.2f}'.format(avg_cpu_power),
+                        "W peak: ",
+                        '{0:.2f}'.format(cpu_peak_power),
+                        "W)"
+                    ]), half_width)
                     cpu_power_chart.append(cpu_power_percent)
 
                     gpu_power_percent = int(
@@ -429,14 +451,15 @@ def main(argv=None):
                         gpu_peak_power = gpu_power_W
                     avg_gpu_power_list.append(gpu_power_W)
                     avg_gpu_power = get_avg(avg_gpu_power_list)
-                    gpu_power_chart.title = clip_text(compact_title(
-                        "GPU",
-                        f"{gpu_power_W:.1f}W",
-                        "avg",
-                        f"{avg_gpu_power:.1f}W",
-                        "pk",
-                        f"{gpu_peak_power:.1f}W"
-                    ), half_width)
+                    gpu_power_chart.title = clip_text("".join([
+                        "GPU: ",
+                        '{0:.2f}'.format(gpu_power_W),
+                        "W (avg: ",
+                        '{0:.2f}'.format(avg_gpu_power),
+                        "W peak: ",
+                        '{0:.2f}'.format(gpu_peak_power),
+                        "W)"
+                    ]), half_width)
                     gpu_power_chart.append(gpu_power_percent)
 
                     ui.display()
