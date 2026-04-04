@@ -4,7 +4,7 @@ long_description = 'Performance monitoring CLI tool for Apple Silicon'
 
 setup(
     name='asitop',
-    version='0.0.22',
+    version='0.0.23',
     author='Timothy Liu',
     author_email='tlkh.xms@gmail.com',
     url='https://github.com/tlkh/asitop',
@@ -18,15 +18,16 @@ setup(
                 'asitop = asitop.asitop:main'
             ]
     },
-    classifiers=(
+    classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: MacOS",
-    ),
+    ],
     keywords='asitop',
     install_requires=[
         "dashing",
         "psutil",
+        "wcwidth",
     ],
     zip_safe=False
 )
