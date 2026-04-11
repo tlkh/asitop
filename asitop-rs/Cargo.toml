@@ -1,0 +1,15 @@
+[package]
+name = "asitop"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+plist = "1"
+ratatui = "0.29"
+crossterm = "0.28"
+sysinfo = "0.33"
+anyhow = "1"
+
+[profile.release]
+opt-level = 3
+lto = true
