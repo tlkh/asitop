@@ -1,0 +1,19 @@
+# asitop
+
+> Apple Silicon performance monitoring CLI — fork with Apple M5 Max/Pro/Ultra support
+
+## What it does
+- Real-time terminal dashboard for Apple Silicon GPU, CPU, ANE, memory, and power
+- Reads hardware performance counters via macOS powermetrics (requires sudo)
+- Shows per-cluster CPU frequency and utilization, GPU usage, power draw, thermal throttle status
+- Fixed for Apple M5's unified M-cluster architecture (upstream crashes with KeyError on M5)
+
+## Install
+```
+pip install git+https://github.com/ProducerGuy/asitop.git
+```
+
+## Links
+- [GitHub (this fork)](https://github.com/ProducerGuy/asitop)
+- [Upstream (inactive since 2023)](https://github.com/tlkh/asitop)
+- [Upstream PR with fix](https://github.com/tlkh/asitop/pull/92)

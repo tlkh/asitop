@@ -1,89 +1,76 @@
-# asitop
+# asitop — Apple Silicon Performance Monitor (M5 Max Support)
 
-![PyPI - Downloads](https://img.shields.io/pypi/dm/asitop)
+Performance monitoring CLI tool for Apple Silicon Macs — **with Apple M5 support**.
 
-Performance monitoring CLI tool for Apple Silicon
+This is a maintained fork of [tlkh/asitop](https://github.com/tlkh/asitop) that fixes the crash on Apple M5, M5 Pro, M5 Max, and M5 Ultra. The upstream repo has been inactive since January 2023 and does not support M5's unified cluster architecture.
 
-![](images/asitop.png)
+![asitop running on M5 Max](images/asitop.png)
 
-```shell
-pip install asitop
+## What Changed (M5 Fix)
+
+Apple M5 chips use a **unified M-cluster architecture** instead of the separate E-Cluster/P-Cluster naming used by M1–M4. Upstream asitop crashes immediately on M5 with:
+
+```
+KeyError: 'E0-Cluster_active'
 ```
 
-## What is `asitop`
+This fork fixes the crash by detecting M-prefixed clusters in the powermetrics output and mapping them correctly to the asitop dashboard. It also adds M5 Max TDP and memory bandwidth values.
 
-A Python-based `nvtop`-inspired command line tool for Apple Silicon (aka M1) Macs.
+**Upstream PR:** [tlkh/asitop#92](https://github.com/tlkh/asitop/pull/92)
 
-* Utilization info:
-  * CPU (E-cluster and P-cluster), GPU
-  * Frequency and utilization
-  * ANE utilization (measured by power)
-* Memory info:
-  * RAM and swap, size and usage
-  * (Apple removed memory bandwidth from `powermetrics`)
-* Power info:
-  * CPU power, GPU power (Apple removed package power from `powermetrics`)
-  * Chart for CPU/GPU power
-  * Peak power, rolling average display
+## Installation
 
-`asitop` uses the built-in [`powermetrics`](https://www.unix.com/man-page/osx/1/powermetrics/) utility on macOS, which allows access to a variety of hardware performance counters. Note that it requires `sudo` to run due to `powermetrics` needing root access to run. `asitop` is lightweight and has minimal performance impact.
-
-**`asitop` only works on Apple Silicon Macs on macOS Monterey!**
-
-## Installation and Usage
-
-`asitop` is a Python-based command line tool. You need `pip` to download and install `asitop`. macOS already comes with Python, to install `pip`, you can follow an [online guide](https://phoenixnap.com/kb/install-pip-mac). After you install `asitop` via `pip`, you can use it via the Terminal.
+Install from this fork (recommended for M5 Macs):
 
 ```shell
-# to enter password before start
-# this mode is recommended!
+pip install git+https://github.com/ProducerGuy/asitop.git
+```
+
+## Usage
+
+```shell
+# recommended — enter password before start
 sudo asitop
 
-# it will prompt password on start
-asitop
-
 # advanced options
-asitop [-h] [--interval INTERVAL] [--color COLOR] [--avg AVG]
-optional arguments:
-  -h, --help           show this help message and exit
-  --interval INTERVAL  Display interval and sampling interval for powermetrics (seconds)
-  --color COLOR        Choose display color (0~8)
-  --avg AVG            Interval for averaged values (seconds)
+sudo asitop [--interval INTERVAL] [--color COLOR] [--avg AVG]
 ```
 
-## How it works
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--interval` | Sampling interval in seconds | 1 |
+| `--color` | Display color (0–8) | 2 |
+| `--avg` | Averaging window in seconds | 30 |
 
-`powermetrics` is used to measure the following:
+## What It Shows
 
-* CPU/GPU utilization via active residency
-* CPU/GPU frequency
-* Package/CPU/GPU/ANE energy consumption
-* CPU/GPU/Media Total memory bandwidth via the DCS (DRAM Command Scheduler)
+- **CPU utilization** — per-cluster frequency and active residency (P-CPU and E-CPU gauges)
+- **GPU utilization** — frequency, active residency percentage
+- **ANE utilization** — estimated from power draw
+- **Memory** — RAM and swap usage
+- **Power** — CPU, GPU, and package power draw with rolling average and peak tracking
+- **Thermal** — throttle status
 
-[`psutil`](https://github.com/giampaolo/psutil) is used to measure the following:
+## Supported Hardware
 
-* memory and swap usage
+| Chip | Status | Notes |
+|------|--------|-------|
+| Apple M1 / M1 Pro / M1 Max / M1 Ultra | Supported | Original upstream support |
+| Apple M2 | Supported | Original upstream support |
+| Apple M3 / M3 Pro / M3 Max / M3 Ultra | Supported | Uses default TDP values |
+| Apple M4 / M4 Pro / M4 Max / M4 Ultra | Supported | Uses default TDP values |
+| Apple M5 / M5 Pro / M5 Max / M5 Ultra | Supported | **Fixed in this fork** — M-cluster architecture |
 
-[`sysctl`](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/sysctl.3.html) is used to measure the following:
+## How It Works
 
-* CPU name
-* CPU core counts
+`asitop` reads hardware performance counters via macOS's built-in [`powermetrics`](https://www.unix.com/man-page/osx/1/powermetrics/) utility (requires `sudo`). It also uses [`psutil`](https://github.com/giampaolo/psutil) for memory/swap and `sysctl`/`system_profiler` for CPU and GPU core counts.
 
-[`system_profiler`](https://ss64.com/osx/system_profiler.html) is used to measure the following:
+Some values (TDP, max bandwidth, ANE max power) are hardcoded estimates per chip model.
 
-* GPU core count
+## License
 
-Some information is guesstimate and hardcoded as there doesn't seem to be a official source for it on the system:
+MIT — see [LICENSE](LICENSE).
 
-* CPU/GPU TDP
-* CPU/GPU maximum memory bandwidth
-* ANE max power
-* Media engine max bandwidth
+## Credits
 
-## Why
-
-Because I didn't find something like this online. Also, just curious about stuff.
-
-## Disclaimers
-
-I did this randomly don't blame me if it fried your new MacBook or something.
+Original project by [Timothy Liu](https://github.com/tlkh). M5 support added by [ProducerGuy](https://github.com/ProducerGuy).
