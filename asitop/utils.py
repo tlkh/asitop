@@ -11,6 +11,9 @@ def parse_powermetrics(path='/tmp/asitop_powermetrics', timecode="0"):
     data = None
     try:
         with open(path+timecode, 'rb') as fp:
+            fp.seek(0, 2)
+            size = fp.tell()
+            fp.seek(max(0, size - 65536))
             data = fp.read()
         data = data.split(b'\x00')
         powermetrics_parse = plistlib.loads(data[-1])
