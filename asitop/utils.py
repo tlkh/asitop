@@ -1,38 +1,42 @@
-import os
 import glob
-import subprocess
-from subprocess import PIPE
-import psutil
-from .parsers import *
+import os
 import plistlib
+import signal
+import subprocess
+from contextlib import suppress
+from subprocess import PIPE
+from xml.parsers.expat import ExpatError
+
+import psutil
+
+from .parsers import (
+    parse_cpu_metrics,
+    parse_gpu_metrics,
+    parse_thermal_pressure,
+)
 
 
 def parse_powermetrics(path='/tmp/asitop_powermetrics', timecode="0"):
-    data = None
     try:
         with open(path+timecode, 'rb') as fp:
             data = fp.read()
-        data = data.split(b'\x00')
-        powermetrics_parse = plistlib.loads(data[-1])
-        thermal_pressure = parse_thermal_pressure(powermetrics_parse)
-        cpu_metrics_dict = parse_cpu_metrics(powermetrics_parse)
-        gpu_metrics_dict = parse_gpu_metrics(powermetrics_parse)
-        #bandwidth_metrics = parse_bandwidth_metrics(powermetrics_parse)
-        bandwidth_metrics = None
-        timestamp = powermetrics_parse["timestamp"]
-        return cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp
-    except Exception as e:
-        if data:
-            if len(data) > 1:
-                powermetrics_parse = plistlib.loads(data[-2])
-                thermal_pressure = parse_thermal_pressure(powermetrics_parse)
-                cpu_metrics_dict = parse_cpu_metrics(powermetrics_parse)
-                gpu_metrics_dict = parse_gpu_metrics(powermetrics_parse)
-                #bandwidth_metrics = parse_bandwidth_metrics(powermetrics_parse)
-                bandwidth_metrics = None
-                timestamp = powermetrics_parse["timestamp"]
-                return cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp
+    except OSError:
         return False
+
+    for sample_data in reversed(data.split(b'\x00')):
+        if not sample_data:
+            continue
+        with suppress(plistlib.InvalidFileException, ExpatError):
+            powermetrics_parse = plistlib.loads(sample_data)
+            thermal_pressure = parse_thermal_pressure(powermetrics_parse)
+            cpu_metrics_dict = parse_cpu_metrics(powermetrics_parse)
+            gpu_metrics_dict = parse_gpu_metrics(powermetrics_parse)
+            #bandwidth_metrics = parse_bandwidth_metrics(powermetrics_parse)
+            bandwidth_metrics = None
+            timestamp = powermetrics_parse["timestamp"]
+            return cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp
+
+    return False
 
 
 def clear_console():
@@ -49,20 +53,43 @@ def run_powermetrics_process(timecode, nice=10, interval=1000):
     #major_ver = int(ver.split(".")[0])
     for tmpf in glob.glob("/tmp/asitop_powermetrics*"):
         os.remove(tmpf)
-    output_file_flag = "-o"
-    command = " ".join([
-        "sudo nice -n",
+    command = [] if os.geteuid() == 0 else ["sudo"]
+    command.extend([
+        "nice",
+        "-n",
         str(nice),
         "powermetrics",
-        "--samplers cpu_power,gpu_power,thermal",
-        output_file_flag,
+        "--samplers",
+        "cpu_power,gpu_power,thermal",
+        "-o",
         "/tmp/asitop_powermetrics"+timecode,
-        "-f plist",
+        "-f",
+        "plist",
         "-i",
         str(interval)
     ])
-    process = subprocess.Popen(command.split(" "), stdin=PIPE, stdout=PIPE)
+    # The executable names and argument boundaries are fixed above.
+    process = subprocess.Popen(  # nosec B603
+        command,
+        stdin=PIPE,
+        stdout=PIPE,
+        start_new_session=True,
+    )
     return process
+
+
+def terminate_powermetrics_process(process):
+    if process is None or process.poll() is not None:
+        return
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    except PermissionError:
+        try:
+            process.terminate()
+        except (PermissionError, ProcessLookupError):
+            return
 
 
 def get_ram_metrics_dict():

@@ -1,8 +1,18 @@
-import time
 import argparse
+import atexit
+import time
 from collections import deque
-from dashing import VSplit, HSplit, HGauge, HChart, VGauge
-from .utils import *
+
+from dashing import HChart, HGauge, HSplit, VGauge, VSplit
+
+from .utils import (
+    clear_console,
+    get_ram_metrics_dict,
+    get_soc_info,
+    parse_powermetrics,
+    run_powermetrics_process,
+    terminate_powermetrics_process,
+)
 
 parser = argparse.ArgumentParser(
     description='asitop: Performance monitoring CLI tool for Apple Silicon')
@@ -16,10 +26,108 @@ parser.add_argument('--show_cores', type=bool, default=False,
                     help='Choose show cores mode')
 parser.add_argument('--max_count', type=int, default=0,
                     help='Max show count to restart powermetrics')
-args = parser.parse_args()
 
 
-def main():
+def _horizontal_split(widgets):
+    return widgets[0] if len(widgets) == 1 else HSplit(*widgets)
+
+
+def _build_processor_widgets(cluster_groups, color, show_cores):
+    group_gauges = {}
+    core_gauges = {}
+    processor_gauges = []
+
+    for group in cluster_groups:
+        family = group["family"]
+        group_gauge = HGauge(
+            title=group["label"] + " Usage",
+            val=0,
+            color=color,
+        )
+        group_gauges[family] = group_gauge
+        processor_gauges.append(group_gauge)
+
+        family_core_gauges = {}
+        for core in group["cores"]:
+            family_core_gauges[core["id"]] = VGauge(
+                val=0,
+                color=color,
+                border_color=color,
+            )
+        core_gauges[family] = family_core_gauges
+
+        if show_cores:
+            core_widgets = list(family_core_gauges.values())
+            for row_start in range(0, len(core_widgets), 8):
+                processor_gauges.append(
+                    _horizontal_split(core_widgets[row_start:row_start + 8])
+                )
+
+    gpu_gauge = HGauge(title="GPU Usage", val=0, color=color)
+    ane_gauge = HGauge(title="ANE Usage", val=0, color=color)
+    if show_cores:
+        processor_gauges.extend([gpu_gauge, ane_gauge])
+    else:
+        processor_gauges = [
+            _horizontal_split(list(group_gauges.values())),
+            HSplit(gpu_gauge, ane_gauge),
+        ]
+
+    processor_split = VSplit(
+        *processor_gauges,
+        title="Processor Utilization",
+        border_color=color,
+    )
+    return processor_split, group_gauges, core_gauges, gpu_gauge, ane_gauge
+
+
+def _processor_title(soc_name, cluster_groups, gpu_core_count):
+    core_groups = "+".join(
+        str(group["core_count"]) + group["family"]
+        for group in cluster_groups
+    )
+    return f"{soc_name} (Cores: {core_groups}+{gpu_core_count}GPU)"
+
+
+def _update_processor_widgets(
+    cluster_groups,
+    group_gauges,
+    core_gauges,
+    show_cores,
+):
+    for group in cluster_groups:
+        family = group["family"]
+        group_gauge = group_gauges.get(family)
+        if group_gauge is None:
+            continue
+        group_gauge.title = (
+            f'{group["label"]} Usage: {group["active"]}% '
+            f'@ {group["freq_Mhz"]} MHz'
+        )
+        group_gauge.value = group["active"]
+
+        if show_cores:
+            family_core_gauges = core_gauges.get(family, {})
+            for core in group["cores"]:
+                core_gauge = family_core_gauges.get(core["id"])
+                if core_gauge is None:
+                    continue
+                core_gauge.title = (
+                    f'Core {core["id"] + 1}: {core["active"]}%'
+                )
+                core_gauge.value = core["active"]
+
+
+def _wait_for_reading(timecode, wait=0.1):
+    ready = parse_powermetrics(timecode=timecode)
+    while not ready:
+        time.sleep(wait)
+        ready = parse_powermetrics(timecode=timecode)
+    return ready
+
+
+def main(argv=None):
+    args = parser.parse_args(argv)
     print("\nASITOP - Performance monitoring CLI tool for Apple Silicon")
     print("You can update ASITOP by running `pip install asitop --upgrade`")
     print("Get help at `https://github.com/tlkh/asitop`")
@@ -27,38 +135,37 @@ def main():
     print("\n[1/3] Loading ASITOP\n")
     print("\033[?25l")
 
-    cpu1_gauge = HGauge(title="E-CPU Usage", val=0, color=args.color)
-    cpu2_gauge = HGauge(title="P-CPU Usage", val=0, color=args.color)
-    gpu_gauge = HGauge(title="GPU Usage", val=0, color=args.color)
-    ane_gauge = HGauge(title="ANE", val=0, color=args.color)
-    gpu_ane_gauges = [gpu_gauge, ane_gauge]
-
     soc_info_dict = get_soc_info()
-    e_core_count = soc_info_dict["e_core_count"]
-    e_core_gauges = [VGauge(val=0, color=args.color, border_color=args.color) for _ in range(e_core_count)]
-    p_core_count = soc_info_dict["p_core_count"]
-    p_core_gauges = [VGauge(val=0, color=args.color, border_color=args.color) for _ in range(min(p_core_count, 8))]
-    p_core_split = [HSplit(
-        *p_core_gauges,
-    )]
-    if p_core_count > 8:
-        p_core_gauges_ext = [VGauge(val=0, color=args.color, border_color=args.color) for _ in range(p_core_count - 8)]
-        p_core_split.append(HSplit(
-            *p_core_gauges_ext,
-        ))
-    processor_gauges = [cpu1_gauge,
-                        HSplit(*e_core_gauges),
-                        cpu2_gauge,
-                        *p_core_split,
-                        *gpu_ane_gauges
-                        ] if args.show_cores else [
-        HSplit(cpu1_gauge, cpu2_gauge),
-        HSplit(*gpu_ane_gauges)
-    ]
-    processor_split = VSplit(
-        *processor_gauges,
-        title="Processor Utilization",
-        border_color=args.color,
+
+    print("\n[2/3] Starting Powermetrics Process\n")
+
+    timecode = str(int(time.time()))
+    powermetrics_process = run_powermetrics_process(
+        timecode,
+        interval=args.interval * 1000,
+    )
+
+    def stop_powermetrics():
+        terminate_powermetrics_process(powermetrics_process)
+
+    atexit.register(stop_powermetrics)
+
+    print("\n[3/3] Waiting for First Reading...\n")
+
+    try:
+        ready = _wait_for_reading(timecode)
+    except BaseException:
+        stop_powermetrics()
+        raise
+
+    cpu_metrics_dict = ready[0]
+    cluster_groups = cpu_metrics_dict["cluster_groups"]
+    processor_split, group_gauges, core_gauges, gpu_gauge, ane_gauge = (
+        _build_processor_widgets(
+            cluster_groups,
+            color=args.color,
+            show_cores=args.show_cores,
+        )
     )
 
     ram_gauge = HGauge(title="RAM Usage", val=0, color=args.color)
@@ -118,17 +225,11 @@ def main():
     usage_gauges = ui.items[0]
     #bw_gauges = memory_gauges.items[1]
 
-    cpu_title = "".join([
+    usage_gauges.title = _processor_title(
         soc_info_dict["name"],
-        " (cores: ",
-        str(soc_info_dict["e_core_count"]),
-        "E+",
-        str(soc_info_dict["p_core_count"]),
-        "P+",
-        str(soc_info_dict["gpu_core_count"]),
-        "GPU)"
-    ])
-    usage_gauges.title = cpu_title
+        cluster_groups,
+        soc_info_dict["gpu_core_count"],
+    )
     cpu_max_power = soc_info_dict["cpu_max_power"]
     gpu_max_power = soc_info_dict["gpu_max_power"]
     ane_max_power = 8.0
@@ -140,23 +241,6 @@ def main():
     gpu_peak_power = 0
     package_peak_power = 0
 
-    print("\n[2/3] Starting powermetrics process\n")
-
-    timecode = str(int(time.time()))
-
-    powermetrics_process = run_powermetrics_process(timecode,
-                                                    interval=args.interval * 1000)
-
-    print("\n[3/3] Waiting for first reading...\n")
-
-    def get_reading(wait=0.1):
-        ready = parse_powermetrics(timecode=timecode)
-        while not ready:
-            time.sleep(wait)
-            ready = parse_powermetrics(timecode=timecode)
-        return ready
-
-    ready = get_reading()
     last_timestamp = ready[-1]
 
     def get_avg(inlist):
@@ -175,14 +259,14 @@ def main():
             if args.max_count > 0:
                 if count >= args.max_count:
                     count = 0
-                    powermetrics_process.terminate()
+                    stop_powermetrics()
                     timecode = str(int(time.time()))
                     powermetrics_process = run_powermetrics_process(
                         timecode, interval=args.interval * 1000)
                 count += 1
             ready = parse_powermetrics(timecode=timecode)
             if ready:
-                cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, bandwidth_metrics, timestamp = ready
+                cpu_metrics_dict, gpu_metrics_dict, thermal_pressure, _, timestamp = ready
 
                 if timestamp > last_timestamp:
                     last_timestamp = timestamp
@@ -192,44 +276,12 @@ def main():
                     else:
                         thermal_throttle = "yes"
 
-                    cpu1_gauge.title = "".join([
-                        "E-CPU Usage: ",
-                        str(cpu_metrics_dict["E-Cluster_active"]),
-                        "% @ ",
-                        str(cpu_metrics_dict["E-Cluster_freq_Mhz"]),
-                        " MHz"
-                    ])
-                    cpu1_gauge.value = cpu_metrics_dict["E-Cluster_active"]
-
-                    cpu2_gauge.title = "".join([
-                        "P-CPU Usage: ",
-                        str(cpu_metrics_dict["P-Cluster_active"]),
-                        "% @ ",
-                        str(cpu_metrics_dict["P-Cluster_freq_Mhz"]),
-                        " MHz"
-                    ])
-                    cpu2_gauge.value = cpu_metrics_dict["P-Cluster_active"]
-
-                    if args.show_cores:
-                        core_count = 0
-                        for i in cpu_metrics_dict["e_core"]:
-                            e_core_gauges[core_count % 4].title = "".join([
-                                "Core-" + str(i + 1) + " ",
-                                str(cpu_metrics_dict["E-Cluster" + str(i) + "_active"]),
-                                "%",
-                            ])
-                            e_core_gauges[core_count % 4].value = cpu_metrics_dict["E-Cluster" + str(i) + "_active"]
-                            core_count += 1
-                        core_count = 0
-                        for i in cpu_metrics_dict["p_core"]:
-                            core_gauges = p_core_gauges if core_count < 8 else p_core_gauges_ext
-                            core_gauges[core_count % 8].title = "".join([
-                                ("Core-" if p_core_count < 6 else 'C-') + str(i + 1) + " ",
-                                str(cpu_metrics_dict["P-Cluster" + str(i) + "_active"]),
-                                "%",
-                            ])
-                            core_gauges[core_count % 8].value = cpu_metrics_dict["P-Cluster" + str(i) + "_active"]
-                            core_count += 1
+                    _update_processor_widgets(
+                        cpu_metrics_dict["cluster_groups"],
+                        group_gauges,
+                        core_gauges,
+                        show_cores=args.show_cores,
+                    )
 
                     gpu_gauge.title = "".join([
                         "GPU Usage: ",
@@ -348,8 +400,10 @@ def main():
 
                     package_power_W = cpu_metrics_dict["package_W"] / \
                                       args.interval
-                    if package_power_W > package_peak_power:
-                        package_peak_power = package_power_W
+                    package_peak_power = max(
+                        package_peak_power,
+                        package_power_W,
+                    )
                     avg_package_power_list.append(package_power_W)
                     avg_package_power = get_avg(avg_package_power_list)
                     power_charts.title = "".join([
@@ -366,8 +420,7 @@ def main():
                     cpu_power_percent = int(
                         cpu_metrics_dict["cpu_W"] / args.interval / cpu_max_power * 100)
                     cpu_power_W = cpu_metrics_dict["cpu_W"] / args.interval
-                    if cpu_power_W > cpu_peak_power:
-                        cpu_peak_power = cpu_power_W
+                    cpu_peak_power = max(cpu_peak_power, cpu_power_W)
                     avg_cpu_power_list.append(cpu_power_W)
                     avg_cpu_power = get_avg(avg_cpu_power_list)
                     cpu_power_chart.title = "".join([
@@ -384,8 +437,7 @@ def main():
                     gpu_power_percent = int(
                         cpu_metrics_dict["gpu_W"] / args.interval / gpu_max_power * 100)
                     gpu_power_W = cpu_metrics_dict["gpu_W"] / args.interval
-                    if gpu_power_W > gpu_peak_power:
-                        gpu_peak_power = gpu_power_W
+                    gpu_peak_power = max(gpu_peak_power, gpu_power_W)
                     avg_gpu_power_list.append(gpu_power_W)
                     avg_gpu_power = get_avg(avg_gpu_power_list)
                     gpu_power_chart.title = "".join([
@@ -405,17 +457,12 @@ def main():
 
     except KeyboardInterrupt:
         print("Stopping...")
+    finally:
         print("\033[?25h")
+        stop_powermetrics()
 
-    return powermetrics_process
+    return 0
 
 
 if __name__ == "__main__":
-    powermetrics_process = main()
-    try:
-        powermetrics_process.terminate()
-        print("Successfully terminated powermetrics process")
-    except Exception as e:
-        print(e)
-        powermetrics_process.terminate()
-        print("Successfully terminated powermetrics process")
+    main()
