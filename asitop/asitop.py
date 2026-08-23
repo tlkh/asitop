@@ -5,7 +5,14 @@ from collections import deque
 
 from dashing import HChart, HGauge, HSplit, VGauge, VSplit
 
-from .utils import *
+from .utils import (
+    clear_console,
+    get_ram_metrics_dict,
+    get_soc_info,
+    parse_powermetrics,
+    run_powermetrics_process,
+    terminate_powermetrics_process,
+)
 
 parser = argparse.ArgumentParser(
     description='asitop: Performance monitoring CLI tool for Apple Silicon')
@@ -111,6 +118,14 @@ def _update_processor_widgets(
                 core_gauge.value = core["active"]
 
 
+def _wait_for_reading(timecode, wait=0.1):
+    ready = parse_powermetrics(timecode=timecode)
+    while not ready:
+        time.sleep(wait)
+        ready = parse_powermetrics(timecode=timecode)
+    return ready
+
+
 def main(argv=None):
     args = parser.parse_args(argv)
     print("\nASITOP - Performance monitoring CLI tool for Apple Silicon")
@@ -137,15 +152,8 @@ def main(argv=None):
 
     print("\n[3/3] Waiting for First Reading...\n")
 
-    def get_reading(wait=0.1):
-        ready = parse_powermetrics(timecode=timecode)
-        while not ready:
-            time.sleep(wait)
-            ready = parse_powermetrics(timecode=timecode)
-        return ready
-
     try:
-        ready = get_reading()
+        ready = _wait_for_reading(timecode)
     except BaseException:
         stop_powermetrics()
         raise
@@ -392,8 +400,10 @@ def main(argv=None):
 
                     package_power_W = cpu_metrics_dict["package_W"] / \
                                       args.interval
-                    if package_power_W > package_peak_power:
-                        package_peak_power = package_power_W
+                    package_peak_power = max(
+                        package_peak_power,
+                        package_power_W,
+                    )
                     avg_package_power_list.append(package_power_W)
                     avg_package_power = get_avg(avg_package_power_list)
                     power_charts.title = "".join([
@@ -410,8 +420,7 @@ def main(argv=None):
                     cpu_power_percent = int(
                         cpu_metrics_dict["cpu_W"] / args.interval / cpu_max_power * 100)
                     cpu_power_W = cpu_metrics_dict["cpu_W"] / args.interval
-                    if cpu_power_W > cpu_peak_power:
-                        cpu_peak_power = cpu_power_W
+                    cpu_peak_power = max(cpu_peak_power, cpu_power_W)
                     avg_cpu_power_list.append(cpu_power_W)
                     avg_cpu_power = get_avg(avg_cpu_power_list)
                     cpu_power_chart.title = "".join([
@@ -428,8 +437,7 @@ def main(argv=None):
                     gpu_power_percent = int(
                         cpu_metrics_dict["gpu_W"] / args.interval / gpu_max_power * 100)
                     gpu_power_W = cpu_metrics_dict["gpu_W"] / args.interval
-                    if gpu_power_W > gpu_peak_power:
-                        gpu_peak_power = gpu_power_W
+                    gpu_peak_power = max(gpu_peak_power, gpu_power_W)
                     avg_gpu_power_list.append(gpu_power_W)
                     avg_gpu_power = get_avg(avg_gpu_power_list)
                     gpu_power_chart.title = "".join([

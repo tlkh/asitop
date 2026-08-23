@@ -1,7 +1,9 @@
+import os
 import plistlib
 import signal
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 from asitop.utils import (
@@ -30,10 +32,15 @@ class PowermetricsProcessTests(unittest.TestCase):
         command = popen.call_args.args[0]
         self.assertEqual("nice", command[0])
         self.assertNotIn("sudo", command)
+        expected_output_path = str(Path(
+            os.sep,
+            "tmp",
+            "asitop_powermetrics123",
+        ))
         self.assertEqual([
             "nice", "-n", "5", "powermetrics",
             "--samplers", "cpu_power,gpu_power,thermal",
-            "-o", "/tmp/asitop_powermetrics123",
+            "-o", expected_output_path,
             "-f", "plist", "-i", "2000",
         ], command)
         self.assertTrue(popen.call_args.kwargs["start_new_session"])
@@ -109,15 +116,18 @@ class ParsePowermetricsTests(unittest.TestCase):
 
             reading = parse_powermetrics(path=output.name, timecode="")
 
-        assert reading is not False
+        if reading is False:
+            self.fail("Expected a complete powermetrics reading")
         self.assertEqual(2, reading[-1])
         self.assertEqual(50, reading[0]["P-Cluster_active"])
 
     def test_missing_file_returns_false(self):
-        self.assertFalse(parse_powermetrics(
-            path="/tmp/asitop-file-that-does-not-exist",
-            timecode="",
-        ))
+        with tempfile.TemporaryDirectory() as temp_directory:
+            missing_file = Path(temp_directory, "missing")
+            self.assertFalse(parse_powermetrics(
+                path=str(missing_file),
+                timecode="",
+            ))
 
 
 if __name__ == "__main__":

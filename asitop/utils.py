@@ -9,7 +9,11 @@ from xml.parsers.expat import ExpatError
 
 import psutil
 
-from .parsers import *
+from .parsers import (
+    parse_cpu_metrics,
+    parse_gpu_metrics,
+    parse_thermal_pressure,
+)
 
 
 def parse_powermetrics(path='/tmp/asitop_powermetrics', timecode="0"):
@@ -64,7 +68,8 @@ def run_powermetrics_process(timecode, nice=10, interval=1000):
         "-i",
         str(interval)
     ])
-    process = subprocess.Popen(
+    # The executable names and argument boundaries are fixed above.
+    process = subprocess.Popen(  # nosec B603
         command,
         stdin=PIPE,
         stdout=PIPE,
