@@ -1,5 +1,6 @@
 import os
 import glob
+import tempfile
 import subprocess
 from subprocess import PIPE
 import psutil
@@ -7,10 +8,30 @@ from .parsers import *
 import plistlib
 
 
-def parse_powermetrics(path='/tmp/asitop_powermetrics', timecode="0"):
+def get_powermetrics_dir(base_dir=None):
+    root = base_dir or tempfile.gettempdir()
+    path = os.path.join(root, f"asitop-{os.getuid()}")
+    os.makedirs(path, mode=0o700, exist_ok=True)
+    return path
+
+
+def get_powermetrics_path(timecode, base_dir=None):
+    return os.path.join(get_powermetrics_dir(base_dir), f"powermetrics-{timecode}.plist")
+
+
+def cleanup_powermetrics_files(base_dir=None):
+    for tmpf in glob.glob(os.path.join(get_powermetrics_dir(base_dir), "powermetrics-*.plist")):
+        try:
+            os.remove(tmpf)
+        except FileNotFoundError:
+            continue
+
+
+def parse_powermetrics(path=None, timecode="0"):
+    path = path or get_powermetrics_path(timecode)
     data = None
     try:
-        with open(path+timecode, 'rb') as fp:
+        with open(path, 'rb') as fp:
             data = fp.read()
         data = data.split(b'\x00')
         powermetrics_parse = plistlib.loads(data[-1])
@@ -45,10 +66,8 @@ def convert_to_GB(value):
 
 
 def run_powermetrics_process(timecode, nice=10, interval=1000):
-    #ver, *_ = platform.mac_ver()
-    #major_ver = int(ver.split(".")[0])
-    for tmpf in glob.glob("/tmp/asitop_powermetrics*"):
-        os.remove(tmpf)
+    output_path = get_powermetrics_path(timecode)
+    cleanup_powermetrics_files()
     output_file_flag = "-o"
     command = " ".join([
         "sudo nice -n",
@@ -56,7 +75,7 @@ def run_powermetrics_process(timecode, nice=10, interval=1000):
         "powermetrics",
         "--samplers cpu_power,gpu_power,thermal",
         output_file_flag,
-        "/tmp/asitop_powermetrics"+timecode,
+        output_path,
         "-f plist",
         "-i",
         str(interval)
